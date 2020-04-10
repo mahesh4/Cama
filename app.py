@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # working
+    # completed, working
     response = {
         'message': 'This service provided by the Center for Assured and Scalable Data Engineering, Arizona State '
                    'University. '
@@ -33,7 +33,7 @@ def to_arcgis():
 
 @app.route('/wetland_flow', methods=['POST'])
 def wetland_flow():
-    # working
+    # completed
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_from_wetlands'
     try:
@@ -45,7 +45,7 @@ def wetland_flow():
 
 @app.route('/reservoir_flow', methods=['POST'])
 def reservoir_flow():
-    # working, but the pre-path and post-path is wrong is wrong
+    # completed
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_nearest_reservoir'
     try:
@@ -57,7 +57,7 @@ def reservoir_flow():
 
 @app.route('/comparative_flow', methods=['POST'])
 def comparative_flow():
-    # working, but the pre-path and post-path is wrong is wrong
+    # completed
     request_data = request.get_json()
     print(request_data)
     request_data['request'] = 'plot_hydrograph_deltas'
@@ -73,7 +73,7 @@ def comparative_flow():
 
 @app.route('/vegetation_lookup', methods=['POST'])
 def vegetation_lookup():
-    # working
+    # completed
     request_data = request.get_json()
     request_data['request'] = 'veg_lookup'
     try:
@@ -85,7 +85,7 @@ def vegetation_lookup():
 
 @app.route('/update_manning', methods=['POST'])
 def update_manning():
-    # work in progress
+    # completed
     request_data = request.get_json()
     request_data['request'] = 'update_manning'
     try:
@@ -95,11 +95,23 @@ def update_manning():
         abort(500, e)
 
 
-@app.route('/cama_status', methods=['POST'])
-def cama_status():
-    """"""
+@app.route('/cama_status/pre', methods=['POST'])
+def cama_status_pre():
+    # compeleted
     request_data = request.get_json()
-    request_data['request'] = 'update_manning'
+    request_data['request'] = 'cama_status'
+    try:
+        response = cama_convert.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route('/cama_status/post', methods=['POST'])
+def cama_status_post():
+    # compeleted
+    request_data = request.get_json()
+    request_data['request'] = ''
     try:
         response = cama_convert.do_request(request_data)
         return response
@@ -109,7 +121,7 @@ def cama_status():
 
 @app.route('/cama_set', methods=['POST'])
 def cama_set():
-    """"""
+    # work in progress
     request_data = request.get_json()
     request_data['request'] = 'cama_set'
     try:
@@ -119,11 +131,23 @@ def cama_set():
         abort(500, e)
 
 
-@app.route('/cama_run', methods=['POST'])
-def came_run():
-    # work in progress
+@app.route('/cama_run/pre', methods=['POST'])
+def came_run_pre():
+    # completed, yet to check
     request_data = request.get_json()
-    request_data['request'] = 'cama_run'
+    request_data['request'] = 'cama_pre_run'
+    try:
+        response = cama_convert.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route('/cama_run/post', methods=['POST'])
+def came_run_post():
+    # completed, yet to check
+    request_data = request.get_json()
+    request_data['request'] = 'cama_post_run'
     try:
         response = cama_convert.do_request(request_data)
         return response
@@ -133,7 +157,7 @@ def came_run():
 
 @app.route('/coord_to_grid', methods=['POST'])
 def coor_to_grid():
-    # working
+    # completed, yet to check
     request_data = request.get_json()
     request_data['request'] = 'coord_to_grid'
     try:
@@ -145,7 +169,7 @@ def coor_to_grid():
 
 @app.route('/peak_flow', methods=['POST'])
 def peak_flow():
-    # not working, the server disk space is less to hold data for 100 yrs
+    # completed, not working, the server disk space is less to hold data for 100 yrs(Need to check with 10 yrs data)
     request_data = request.get_json()
     request_data['request'] = 'peak_flow'
     try:
