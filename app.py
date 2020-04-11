@@ -99,7 +99,7 @@ def update_manning():
 def cama_status_pre():
     # compeleted
     request_data = request.get_json()
-    request_data['request'] = 'cama_status'
+    request_data['request'] = 'cama_status_pre'
     try:
         response = cama_convert.do_request(request_data)
         return response
@@ -111,7 +111,7 @@ def cama_status_pre():
 def cama_status_post():
     # compeleted
     request_data = request.get_json()
-    request_data['request'] = ''
+    request_data['request'] = 'cama_status_post'
     try:
         response = cama_convert.do_request(request_data)
         return response
