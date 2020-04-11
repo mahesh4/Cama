@@ -438,11 +438,11 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
 
 def run_cama_pre():
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/cama/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+    subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
 
 def run_cama_post():
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/cama/model/CaMa_Post/gosh/hamid.sh", shell=True)
+    subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
 
 def cama_status_pre(p_year=0):
     global YEAR
@@ -454,7 +454,7 @@ def cama_status_pre(p_year=0):
         return "Invalid CAMA year: " + str(p_year)
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/cama/model/CaMa_Pre/out/hamid/"
+    base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
@@ -479,7 +479,7 @@ def cama_status_post(p_year=0):
         return "Invalid CAMA year: " + str(p_year)
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/cama/model/CaMa_Post/out/hamid/"
+    base_path = "/var/lib/model/CaMa_Post/out/hamid/"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
