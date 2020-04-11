@@ -134,7 +134,7 @@ def cama_set():
 @app.route('/cama_run/pre', methods=['POST'])
 def came_run_pre():
     # completed, yet to check
-    request_data = request.get_json()
+    request_data = dict()
     request_data['request'] = 'cama_run_pre'
     try:
         response = cama_convert.do_request(request_data)
@@ -146,7 +146,7 @@ def came_run_pre():
 @app.route('/cama_run/post', methods=['POST'])
 def came_run_post():
     # completed, yet to check
-    request_data = request.get_json()
+    request_data = dict()
     request_data['request'] = 'cama_run_post'
     try:
         response = cama_convert.do_request(request_data)
