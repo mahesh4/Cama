@@ -33,7 +33,7 @@ def to_arcgis():
 
 @app.route('/wetland_flow', methods=['POST'])
 def wetland_flow():
-    # completed
+    # completed, working
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_from_wetlands'
     try:
