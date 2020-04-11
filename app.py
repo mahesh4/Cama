@@ -135,7 +135,7 @@ def cama_set():
 def came_run_pre():
     # completed, yet to check
     request_data = request.get_json()
-    request_data['request'] = 'cama_pre_run'
+    request_data['request'] = 'cama_run_pre'
     try:
         response = cama_convert.do_request(request_data)
         return response
@@ -147,7 +147,7 @@ def came_run_pre():
 def came_run_post():
     # completed, yet to check
     request_data = request.get_json()
-    request_data['request'] = 'cama_post_run'
+    request_data['request'] = 'cama_run_post'
     try:
         response = cama_convert.do_request(request_data)
         return response
