@@ -239,7 +239,7 @@ def build_flow_grids():
     global LAT_MAT, LON_MAT
 
     # load ancillary data, including reservoir locations and mappings
-    next_xy_raw = numpy.loadtxt('/var/lib/model/CaMa_pre/map/hamid/nextxy.txt', usecols=range(2))
+    next_xy_raw = numpy.loadtxt('/var/lib/model/CaMa_Pre/map/hamid/nextxy.txt', usecols=range(2))
     next_xx = next_xy_raw[:, 0]
     next_yy = next_xy_raw[:, 1]
 
@@ -438,11 +438,11 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
 
 def run_cama_pre():
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/cama/model/CaMa_pre/gosh/hamid.sh", shell=True)
+    subprocess.Popen("sudo /var/lib/cama/model/CaMa_Pre/gosh/hamid.sh", shell=True)
 
 def run_cama_post():
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/cama/model/CaMa_post/gosh/hamid.sh", shell=True)
+    subprocess.Popen("sudo /var/lib/cama/model/CaMa_Post/gosh/hamid.sh", shell=True)
 
 def cama_status_pre(p_year=0):
     global YEAR
@@ -454,7 +454,7 @@ def cama_status_pre(p_year=0):
         return "Invalid CAMA year: " + str(p_year)
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/cama/model/CaMa_pre/out/hamid/"
+    base_path = "/var/lib/cama/model/CaMa_Pre/out/hamid/"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
@@ -479,7 +479,7 @@ def cama_status_post(p_year=0):
         return "Invalid CAMA year: " + str(p_year)
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/cama/model/CaMa_post/out/hamid/"
+    base_path = "/var/lib/cama/model/CaMa_Post/out/hamid/"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
