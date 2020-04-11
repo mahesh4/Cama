@@ -177,3 +177,7 @@ def peak_flow():
         return response
     except Exception as e:
         abort(500, e)
+
+
+if __name__ == '__main_':
+    app.run(debug=True, port=5000)  # run app in debug mode on port 5000
