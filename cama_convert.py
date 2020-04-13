@@ -239,7 +239,7 @@ def build_flow_grids():
     global LAT_MAT, LON_MAT
 
     # load ancillary data, including reservoir locations and mappings
-    next_xy_raw = numpy.loadtxt('/var/lib/model/CaMa_Pre/map/hamid/nextxy.txt', usecols=range(2))
+    next_xy_raw = numpy.loadtxt('/var/lib/model/Resources/nextxy.txt', usecols=range(2))
     next_xx = next_xy_raw[:, 0]
     next_yy = next_xy_raw[:, 1]
 
