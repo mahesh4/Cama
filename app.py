@@ -180,4 +180,4 @@ def peak_flow():
 
 
 if __name__ == '__main_':
-    app.run(debug=True, host='127.0.0.1', port=80)  # run app in debug mode on port 80
+    app.run(host='0.0.0.0')  # run app in debug mode on port 80
