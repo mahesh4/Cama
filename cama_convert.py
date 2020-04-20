@@ -89,7 +89,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     cell = coord_to_grid_cell(p_lat, p_lon) - 1  # must offset by 1; this is very sensitive in the raw binary
 
     # 1) we pull the number of indices from the river height file
-    file = open("/Users/magesh/Documents/Cama/hamid_map/rivhgt.bin", 'r')
+    file = open("/var/lib/model/CaMa_Post/map/hamid/rivhgt.bin", 'r')
     index_count = len(numpy.fromfile(file, dtype=numpy.float32))
     file.close()
 
@@ -100,7 +100,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     new_riv[cell] = p_riv_new
 
     # 4) save that to the 'river manning' file
-    new_riv.tofile("/Users/magesh/Documents/Cama/hamid_map/rivman.bin")
+    new_riv.tofile("/var/lib/model/CaMa_Post/map/hamid/rivman.bin")
 
     # 5) set all values to a different, new base value
     new_fld = numpy.full((index_count, 1), p_fld_base, dtype=numpy.float32)
@@ -109,7 +109,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     new_fld[cell] = p_fld_new
 
     # 7) save that as the 'floodplain manning' file
-    new_fld.tofile("/Users/magesh/Documents/Cama/hamid_map/fldman.bin")
+    new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
 
 
 def delta_max_q_y(p_cell=0):
@@ -235,10 +235,11 @@ def map_input_to_flow(file_path, grid_cell, p_year=0, p_clean=False):
 
 
 def build_flow_grids():
+    # fixed nextxy path for server. Currently configured to cama_pre
     global LAT_MAT, LON_MAT
 
     # load ancillary data, including reservoir locations and mappings
-    next_xy_raw = numpy.loadtxt('/Users/magesh/Documents/Cama/Resources/nextxy.txt', usecols=range(2))
+    next_xy_raw = numpy.loadtxt('/var/lib/model/Resources/nextxy.txt', usecols=range(2))
     next_xx = next_xy_raw[:, 0]
     next_yy = next_xy_raw[:, 1]
 
@@ -303,6 +304,7 @@ def grid_cell_of_river_mouth(p_lat=0.0, p_lon=0.0):
 
 
 def grid_cell_of_reservoir(p_lat=0.0, p_lon=0.0):
+    # fixed reservoir path for server deployment
     global LAT, LON, LAT_MAT, LON_MAT
 
     if p_lat == 0:
@@ -313,7 +315,7 @@ def grid_cell_of_reservoir(p_lat=0.0, p_lon=0.0):
     coord_offset = coord_to_grid_cell(p_lat, p_lon)
 
     # note: reservoir locations are [lon,lat], in contradiction of ISO 6709
-    reservoir_raw = numpy.loadtxt('/Users/magesh/Documents/Cama/Resources/reservoir_xy.txt', usecols=range(2))
+    reservoir_raw = numpy.loadtxt('/var/lib/model/Resources/Reservoir_xy.txt', usecols=range(2))
     reservoir_offset = []
     for row in range(len(reservoir_raw)):
         reservoir_offset.append(coord_to_grid_cell(reservoir_raw[row][1], reservoir_raw[row][0]))
@@ -434,12 +436,15 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     return min_year
 
 
-def run_cama():
+def run_cama_pre():
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/cama/model/cama/gosh/Distributed_Manning_1915-2011_postWR.sh", shell=True)
+    subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
 
+def run_cama_post():
+    # expects cama to be pre-configured
+    subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
 
-def cama_status(p_year=0):
+def cama_status_pre(p_year=0):
     global YEAR
 
     if p_year == 0:
@@ -449,7 +454,32 @@ def cama_status(p_year=0):
         return "Invalid CAMA year: " + str(p_year)
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/cama/model/cama/out/Distributed_Manning_1915-2011_postWR/"
+    base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
+
+    log_path = base_path + "log.txt"
+    log = open(log_path).readlines()[-1]
+    if "end:" not in log:
+        return "outflw" + str(p_year) + " still executing."
+
+    out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
+    if os.path.isfile(out_path):
+        millistamp = os.path.getmtime(out_path)
+        return str(datetime.datetime.fromtimestamp(millistamp).replace(microsecond=0))
+    else:
+        return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
+
+
+def cama_status_post(p_year=0):
+    global YEAR
+
+    if p_year == 0:
+        p_year = YEAR
+
+    if p_year < 1915 or p_year > 2011:
+        return "Invalid CAMA year: " + str(p_year)
+    p_year = str(p_year)  # get ready for concat ops
+
+    base_path = "/var/lib/model/CaMa_Post/out/hamid/"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
@@ -469,11 +499,13 @@ def do_request(p_request_json):
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
             p_request_json["request"] == "update_manning" or \
-            p_request_json["request"] == "cama_status" or \
+            p_request_json["request"] == "cama_status_pre" or \
+            p_request_json["request"] == "cama_status_post" or \
             p_request_json["request"] == "cama_set" or \
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
-            p_request_json["request"] == "cama_run":
+            p_request_json["request"] == "cama_run_pre" or \
+            p_request_json['request'] == "cama_run_post":
         check_inputs = False
 
     try:
@@ -533,16 +565,25 @@ def do_request(p_request_json):
             result = dict()
             result["succeeded"] = False
             try:
-                update_manning(p_request_json["lat"], p_request_json["lon"],
-                               p_request_json["riv_pre"], p_request_json["riv_post"],
-                               p_request_json["fld_pre"], p_request_json["fld_post"])
+                update_manning(float(p_request_json["lat"]), float(p_request_json["lon"]),
+                               float(p_request_json["riv_pre"]), float(p_request_json["riv_post"]),
+                               float(p_request_json["fld_pre"]), float(p_request_json["fld_post"]))
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
                 pass
-        elif p_request_json["request"] == "cama_status":
+        elif p_request_json["request"] == "cama_status_pre":
             result = dict()
-            response = cama_status(p_request_json["year"])
+            response = cama_status_pre(p_request_json["year"])
+            if response[0] == '2':
+                result["completed"] = True
+                result["timestamp"] = response
+            else:
+                result["completed"] = False
+                result["message"] = response
+        elif p_request_json["request"] == "cama_status_post":
+            result = dict()
+            response = cama_status_post(p_request_json["year"])
             if response[0] == '2':
                 result["completed"] = True
                 result["timestamp"] = response
@@ -557,9 +598,13 @@ def do_request(p_request_json):
             else:
                 result["succeeded"] = False
                 result["message"] = response
-        elif p_request_json["request"] == "cama_run":
+        elif p_request_json["request"] == "cama_run_pre":
             result = dict()
-            run_cama()
+            run_cama_pre()
+            result["message"] = "Execution queued"
+        elif p_request_json["request"] == "cama_run_post":
+            result = dict()
+            run_cama_post()
             result["message"] = "Execution queued"
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
@@ -573,17 +618,7 @@ def do_request(p_request_json):
 
 if __name__ == '__main__':
     # instring = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'  # DEBUG INPUT FOR PEAK_FLOW
-    instring = dict({
-        "request": "update_manning",
-        "lat": 30.902,
-        "lon": -96.707,
-        "riv_pre": 0.0019,
-        "riv_post": 0.1,
-        "fld_pre": 0.0065,
-        "fld_post": 0.1
-         })
-    # instring = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
-    # payload = json.loads(instring)
-    payload = instring
+    instring = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
+    payload = json.loads(instring)
     print(payload)
     do_request(payload)
