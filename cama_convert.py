@@ -89,7 +89,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     cell = coord_to_grid_cell(p_lat, p_lon) - 1  # must offset by 1; this is very sensitive in the raw binary
 
     # 1) we pull the number of indices from the river height file
-    file = open("/var/lib/model/CaMa_post/map/hamid/rivhgt.bin", 'r')
+    file = open("/var/lib/model/CaMa_Post/map/hamid/rivhgt.bin", 'r')
     index_count = len(numpy.fromfile(file, dtype=numpy.float32))
     file.close()
 
@@ -100,7 +100,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     new_riv[cell] = p_riv_new
 
     # 4) save that to the 'river manning' file
-    new_riv.tofile("/var/lib/model/CaMa_post/map/hamid/rivman.bin")
+    new_riv.tofile("/var/lib/model/CaMa_Post/map/hamid/rivman.bin")
 
     # 5) set all values to a different, new base value
     new_fld = numpy.full((index_count, 1), p_fld_base, dtype=numpy.float32)
@@ -109,7 +109,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
     new_fld[cell] = p_fld_new
 
     # 7) save that as the 'floodplain manning' file
-    new_fld.tofile("/var/lib/model/CaMa_post/map/hamid/fldman.bin")
+    new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
 
 
 def delta_max_q_y(p_cell=0):
