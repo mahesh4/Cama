@@ -128,7 +128,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
 
     # 8) update the fldhgt.bin
-    file = open("/var/lib/model/CaMa_Pre/hamid/lonlat")
+    file = open("/var/lib/model/CaMa_Pre/map/hamid/lonlat")
     lon_lat_1 = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
     lon_lat = numpy.array(lon_lat_1.shape, dtype=numpy.float32)
@@ -144,7 +144,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
     lon_lat_4 = lon_lat
 
-    file = open("var/lib/model/CaMa_Pre/hamid/wetland_loc_multiple", "r")
+    file = open("var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple", "r")
     lon_lat_5 = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
 
