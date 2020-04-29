@@ -625,7 +625,8 @@ def do_request(p_request_json):
             try:
                 update_manning(float(p_request_json["lat"]), float(p_request_json["lon"]),
                                float(p_request_json["riv_pre"]), float(p_request_json["riv_post"]),
-                               float(p_request_json["fld_pre"]), float(p_request_json["fld_post"]))
+                               float(p_request_json["fld_pre"]), float(p_request_json["fld_post"]),
+                               int(p_request_json['size_wetland']))
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
