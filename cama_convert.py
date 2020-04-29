@@ -9,7 +9,6 @@ import sys
 import numpy
 from math import sin, cos, sqrt, atan2, radians
 
-
 YEAR = ""  # the year to evaluate
 PRE_PATH = ""  # file path to the pre-restoration modelling results
 POST_PATH = ""  # file path to the post-restoration modelling results
@@ -128,31 +127,38 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
 
     # 8) update the fldhgt.bin
-    file = open("/var/lib/model/CaMa_Pre/map/hamid/lonlat")
-    lon_lat_1 = numpy.fromfile(file, dtype=numpy.float32)
-    file.close()
-    lon_lat = numpy.array(lon_lat_1.shape, dtype=numpy.float32)
+    file = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat"  # for testing in local machine
+    lon_lat_1 = numpy.loadtxt(file, usecols=range(2))
 
-    for i in range(10):
-        lon_lat = numpy.append(lon_lat, lon_lat_1, axis=0)
+    print('lon_lat_1 : ' + str(lon_lat_1.shape))
+
+    lon_lat = lon_lat_1
+
+    for i in range(9):
+        lon_lat = numpy.vstack([lon_lat_1, lon_lat])
 
     file = open("/var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
+    # file = open("/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/fldhgt_original.bin", "r") # for testing in
+    # local machine
     fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
 
-    lon_lat[:, 2] = fldhgt_original[0: fldhgt_original.shape[0], 0]
+    lon_lat = numpy.insert(lon_lat, 2, fldhgt_original[0: lon_lat.shape[0]], axis=1)
 
     lon_lat_4 = lon_lat
 
-    file = open("/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple", "r")
-    lon_lat_5 = numpy.fromfile(file, dtype=numpy.float32)
-    file.close()
+    file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple" # for testing in local machine
+    lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
     for k in range(1, 3):
         lon_5 = lon_lat_5[k, 1]
         lat_5 = lon_lat_5[k, 0]
 
         lon_lat_2 = lon_lat_1[:, 0:2]
+        lon_lat_2 = numpy.insert(lon_lat_2, 2, 0, axis=1)
+
         for j in range(0, lon_lat_2.shape[0]):
             lon = lon_lat_2[j, 0]
             lat = lon_lat_2[j, 1]
@@ -160,11 +166,12 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
         lon_lat_3 = lon_lat_2[lon_lat_2[:, 2].argsort()]
 
-        location = numpy.where(lon_lat[:, 0] == lon_lat_3[0, 0] & lon_lat[:, 1] == lon_lat_3[0, 1])
-        lon_lat_4[location[0: size_wetland - 1], 2] = lon_lat[location[0: size_wetland - 1], 2]-1.5
+        location = numpy.where((lon_lat[:, 0] == lon_lat_3[0, 0]) & (lon_lat[:, 1] == lon_lat_3[0, 1]))
+
+        lon_lat_4[location[0: size_wetland - 1], 2] = lon_lat[location[0: size_wetland - 1], 2] - 1.5
 
     with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
-        fp.write(lon_lat_4[:, 2])
+        lon_lat_4[:, 2].tofile(fp)
         fp.close()
 
 
@@ -553,7 +560,6 @@ def cama_status_post(p_year=0):
 
 
 def do_request(p_request_json):
-    # validate input
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
             p_request_json["request"] == "update_manning" or \
@@ -599,25 +605,19 @@ def do_request(p_request_json):
 
         result = None
         if p_request_json["request"] == "plot_hydrograph_from_wetlands":
-            # working, but doubt regarding the input files mapped, integrated
             result = plot_hydrograph_from_wetlands()
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
-            # working, but doubt regarding the input files mapped, integrated
             result = plot_hydrograph_nearest_reservoir()
         elif p_request_json["request"] == "peak_flow":
-            # not working
             result = peak_flow(float(p_request_json["lat"]),
                                float(p_request_json["lon"]),
                                int(p_request_json["return_period"]))
             print(result)
         elif p_request_json["request"] == "plot_hydrograph_deltas":
-            # working
             result = delta_max_all()
         elif p_request_json["request"] == "veg_lookup":
-            # working
             result = veg_to_manning(p_request_json["veg_type"])
         elif p_request_json["request"] == "coord_to_grid":
-            # working
             result = coord_to_grid_cell(float(p_request_json["lat"]), float(p_request_json["lon"]))
         elif p_request_json["request"] == "update_manning":
             result = dict()
