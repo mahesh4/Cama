@@ -7,6 +7,8 @@ import subprocess
 import sys
 
 import numpy
+from math import sin, cos, sqrt, atan2, radians
+
 
 YEAR = ""  # the year to evaluate
 PRE_PATH = ""  # file path to the pre-restoration modelling results
@@ -15,6 +17,20 @@ LAT = 0  # the point to consider (lon)
 LON = 0  # the point to consider (lat)
 LAT_MAT = [0]
 LON_MAT = [0]
+
+
+def pos2dis(lat1, lon1, lat2, lon2):
+    # approximate radius of earth in km
+    R = 6373.0
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance
 
 
 def is_number(in_string):
@@ -82,7 +98,7 @@ def veg_to_manning(veg_type=""):
         return None  # not a recognized type of vegetation
 
 
-def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
+def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, size_wetland):
     # this function updates the manning parameters of the post-restoration model
     # you will need to call the model and scrape the results yourself manually
 
@@ -110,6 +126,46 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new):
 
     # 7) save that as the 'floodplain manning' file
     new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
+
+    # 8) update the fldhgt.bin
+    file = open("/var/lib/model/CaMa_Pre/hamid/lonlat")
+    lon_lat_1 = numpy.fromfile(file, dtype=numpy.float32)
+    file.close()
+    lon_lat = numpy.array(lon_lat_1.shape, dtype=numpy.float32)
+
+    for i in range(10):
+        lon_lat = lon_lat.append(lon_lat_1, axis=0)
+
+    file = open("var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
+    fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
+    file.close()
+
+    lon_lat[:, 2] = fldhgt_original[0: fldhgt_original.shape[0], 0]
+
+    lon_lat_4 = lon_lat
+
+    file = open("var/lib/model/CaMa_Pre/hamid/wetland_loc_multiple", "r")
+    lon_lat_5 = numpy.fromfile(file, dtype=numpy.float32)
+    file.close()
+
+    for k in range(1, 3):
+        lon_5 = lon_lat_5[k, 1]
+        lat_5 = lon_lat_5[k, 0]
+
+        lon_lat_2 = lon_lat_1[:, 0:2]
+        for j in range(0, lon_lat_2.shape[0]):
+            lon = lon_lat_2[j, 0]
+            lat = lon_lat_2[j, 1]
+            lon_lat_2[j, 2] = pos2dis(lat_5, lon_5, lat, lon)
+
+        lon_lat_3 = lon_lat_2[lon_lat_2[:, 2].argsort()]
+
+        location = numpy.where(lon_lat[:, 0] == lon_lat_3[0, 0] & lon_lat[:, 1] == lon_lat_3[0, 1])
+        lon_lat_4[location[0: size_wetland - 1], 2] = lon_lat[location[0: size_wetland - 1], 2]-1.5
+
+    with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
+        fp.write(lon_lat_4[:, 2])
+        fp.close()
 
 
 def delta_max_q_y(p_cell=0):
@@ -440,9 +496,11 @@ def run_cama_pre():
     # expects cama to be pre-configured
     subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
 
+
 def run_cama_post():
     # expects cama to be pre-configured
     subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+
 
 def cama_status_pre(p_year=0):
     global YEAR
