@@ -134,7 +134,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     lon_lat = numpy.array(lon_lat_1.shape, dtype=numpy.float32)
 
     for i in range(10):
-        lon_lat = lon_lat.append(lon_lat_1, axis=0)
+        lon_lat = numpy.append(lon_lat, lon_lat_1, axis=0)
 
     file = open("var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
     fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
