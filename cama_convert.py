@@ -131,10 +131,9 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat"  # for testing in local machine
     lon_lat_1 = numpy.loadtxt(file, usecols=range(2))
 
-    print('lon_lat_1 : ' + str(lon_lat_1.shape))
-
     lon_lat = lon_lat_1
 
+    # vertical
     for i in range(9):
         lon_lat = numpy.vstack([lon_lat_1, lon_lat])
 
@@ -168,7 +167,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
         location = numpy.where((lon_lat[:, 0] == lon_lat_3[0, 0]) & (lon_lat[:, 1] == lon_lat_3[0, 1]))
 
-        lon_lat_4[location[0: size_wetland - 1], 2] = lon_lat[location[0: size_wetland - 1], 2] - 1.5
+        lon_lat_4[location[0: size_wetland + 1], 2] = lon_lat[location[0: size_wetland + 1], 2] - 1.5
 
     with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
         lon_lat_4[:, 2].tofile(fp)
@@ -450,10 +449,8 @@ def config_cama(p_year=0):
     return "Success"
 
 
-"""Returns a year which has maximal difference / minimum flow(working)"""
-
-
 def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
+    """Returns a year which has maximal difference / minimum flow(working)"""
     global LAT, LON
 
     if p_lat == 0:
@@ -475,8 +472,8 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     # for each year in the range
     year_peaks = [0] * 97
     for i in range(1916, 2010):
-        output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
-        # output_file = "/var/lib/cama/resources/outflows/outflw" + str(i) + ".bin"
+        # output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
+        output_file = "/var/lib/cama/resources/outflows/outflw" + str(i) + ".bin"
         year_flow = map_input_to_flow(output_file, grid_cell, i, False)
         year_peaks[i - 1915] = max(year_flow)
 
