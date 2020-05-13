@@ -130,15 +130,13 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     file = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
     # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat"  # for testing in local machine
     lon_lat_1 = numpy.loadtxt(file, usecols=range(2))
-
     lon_lat = lon_lat_1
 
-    # vertical
     for i in range(9):
         lon_lat = numpy.vstack([lon_lat_1, lon_lat])
 
     file = open("/var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
-    # file = open("/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/fldhgt_original.bin", "r") # for testing in
+    # file = open("/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/fldhgt_original.bin", "r")  # for testing in
     # local machine
     fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
@@ -148,7 +146,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     lon_lat_4 = lon_lat
 
     file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
-    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple" # for testing in local machine
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
     lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
     for k in range(1, 3):
@@ -166,11 +164,11 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         lon_lat_3 = lon_lat_2[lon_lat_2[:, 2].argsort()]
 
         location = numpy.where((lon_lat[:, 0] == lon_lat_3[0, 0]) & (lon_lat[:, 1] == lon_lat_3[0, 1]))
-
         lon_lat_4[location[0: size_wetland + 1], 2] = lon_lat[location[0: size_wetland + 1], 2] - 1.5
 
     with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
-        lon_lat_4[:, 2].tofile(fp)
+        lon_lat_4[:, 2].astype('float32').tofile(fp)
+        print(lon_lat_4.shape)
         fp.close()
 
 
@@ -676,5 +674,4 @@ if __name__ == '__main__':
     # instring = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'  # DEBUG INPUT FOR PEAK_FLOW
     instring = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
     payload = json.loads(instring)
-    print(payload)
     do_request(payload)
