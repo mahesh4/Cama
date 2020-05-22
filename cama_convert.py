@@ -5,6 +5,7 @@ import math
 import os.path
 import subprocess
 import sys
+import glob
 
 import numpy
 from math import sin, cos, sqrt, atan2, radians
@@ -12,8 +13,8 @@ from math import sin, cos, sqrt, atan2, radians
 YEAR = ""  # the year to evaluate
 PRE_PATH = ""  # file path to the pre-restoration modelling results
 POST_PATH = ""  # file path to the post-restoration modelling results
-LAT = 0  # the point to consider (lon)
-LON = 0  # the point to consider (lat)
+LAT = 0
+LON = 0
 LAT_MAT = [0]
 LON_MAT = [0]
 
@@ -67,9 +68,6 @@ def days_in_year(year):
 
 
 def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
-    """Maps the p_lat and p_long into a grid cell no
-    constants here are lat_baseline and lon_baseline (working)
-    """
     global LAT, LON
 
     if p_lat == 0:
@@ -83,7 +81,6 @@ def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
 
 
 def veg_to_manning(veg_type=""):
-    # (working)
     veg_type = veg_type.lower()
     if veg_type == "crop" or veg_type == "crops":
         return 0.05
@@ -170,6 +167,16 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         lon_lat_4[:, 2].astype('float32').tofile(fp)
         print(lon_lat_4.shape)
         fp.close()
+
+
+def update_wetland(flow):
+    file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
+    wetland_loc_multiple = numpy.loadtxt(file, usecols=range(2))
+    input_path = "/var/lib/model/CaMa_Pre/inp/hamid/"
+    for filename in glob.glob(os.path.join(input_path, '*.bin')):
+        with open(filename, 'a') as f:
+            flood_input = numpy.fromfile(f, dtype=numpy.float32)
 
 
 def delta_max_q_y(p_cell=0):
@@ -553,6 +560,27 @@ def cama_status_post(p_year=0):
     else:
         return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
 
+def get_flow(p_year, model):
+    if model == "pre":
+        base_path = "/var/lib/model/CaMa_Pre/out/hamid"
+        out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
+
+    elif model == "post":
+        base_path = "/var/lib/model/CaMa_Post/out/hamid"
+        out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
+
+    else:
+        return "Invalid model-type selected"
+
+    if os.path.isfile(out_path):
+        with open(out_path, 'r') as file:
+            outflow = numpy.fromfile(file, dtype=numpy.float32)
+            file.close()
+        return outflow
+
+    else:
+        return "output_flow doesn't exist for the year " + p_year
+
 
 def do_request(p_request_json):
     check_inputs = True
@@ -564,6 +592,7 @@ def do_request(p_request_json):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run_pre" or \
+            p_request_json["request"] == 'get_flow' or \
             p_request_json['request'] == "cama_run_post":
         check_inputs = False
 
@@ -604,24 +633,20 @@ def do_request(p_request_json):
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
             result = plot_hydrograph_nearest_reservoir()
         elif p_request_json["request"] == "peak_flow":
-            result = peak_flow(float(p_request_json["lat"]),
-                               float(p_request_json["lon"]),
-                               int(p_request_json["return_period"]))
-            print(result)
+            result = peak_flow(p_request_json["lat"], p_request_json["lon"], p_request_json["return_period"])
         elif p_request_json["request"] == "plot_hydrograph_deltas":
             result = delta_max_all()
         elif p_request_json["request"] == "veg_lookup":
             result = veg_to_manning(p_request_json["veg_type"])
         elif p_request_json["request"] == "coord_to_grid":
-            result = coord_to_grid_cell(float(p_request_json["lat"]), float(p_request_json["lon"]))
+            result = coord_to_grid_cell(p_request_json["lat"], p_request_json["lon"])
         elif p_request_json["request"] == "update_manning":
             result = dict()
             result["succeeded"] = False
             try:
-                update_manning(float(p_request_json["lat"]), float(p_request_json["lon"]),
-                               float(p_request_json["riv_pre"]), float(p_request_json["riv_post"]),
-                               float(p_request_json["fld_pre"]), float(p_request_json["fld_post"]),
-                               int(p_request_json['size_wetland']))
+                update_manning(p_request_json["lat"], p_request_json["lon"],
+                               p_request_json["riv_pre"], p_request_json["riv_post"],
+                               p_request_json["fld_pre"], p_request_json["fld_post"],p_request_json['size_wetland'])
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
@@ -660,18 +685,21 @@ def do_request(p_request_json):
             result = dict()
             run_cama_post()
             result["message"] = "Execution queued"
+        elif p_request_json["message"] == "get_flow":
+            result = get_flow()
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
         if result is not None:
-            print(json.dumps(result))
             return json.dumps(result)  # this is where the data actually is sent back to the API
     except Exception as e:
         print("An exception occurred:" + str(e))
 
 
 if __name__ == '__main__':
-    # instring = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'  # DEBUG INPUT FOR PEAK_FLOW
-    instring = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
-    payload = json.loads(instring)
+    # DEBUG INPUT FOR PEAK_FLOW
+    # inp_string = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'
+
+    inp_string = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
+    payload = json.loads(inp_string)
     do_request(payload)
