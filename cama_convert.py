@@ -560,6 +560,7 @@ def cama_status_post(p_year=0):
     else:
         return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
 
+
 def get_flow(p_year, model):
     if model == "pre":
         base_path = "/var/lib/model/CaMa_Pre/out/hamid"
@@ -646,7 +647,7 @@ def do_request(p_request_json):
             try:
                 update_manning(p_request_json["lat"], p_request_json["lon"],
                                p_request_json["riv_pre"], p_request_json["riv_post"],
-                               p_request_json["fld_pre"], p_request_json["fld_post"],p_request_json['size_wetland'])
+                               p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json['size_wetland'])
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
@@ -687,6 +688,7 @@ def do_request(p_request_json):
             result["message"] = "Execution queued"
         elif p_request_json["message"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
+            print(result)
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
