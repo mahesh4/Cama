@@ -686,7 +686,7 @@ def do_request(p_request_json):
             run_cama_post()
             result["message"] = "Execution queued"
         elif p_request_json["message"] == "get_flow":
-            result = get_flow()
+            result = get_flow(p_request_json['year'], p_request_json['model_type'])
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
