@@ -184,6 +184,7 @@ def get_flow():
 def update_flow():
     request_data = request.get_json()
     request_data['request'] = 'update_flow'
+    print("update_flow called")
     try:
         response = cama_convert.do_request(request_data)
         return response
