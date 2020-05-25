@@ -173,7 +173,7 @@ def update_wetland(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
-    file_path = "/var/lib/model/Cama_Pre/map/hamid/lon_lat"
+    file_path = "/var/lib/model/Cama_Pre/map/hamid/lonlat"
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
@@ -605,9 +605,9 @@ def do_request(p_request_json):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run_pre" or \
+            p_request_json['request'] == "cama_run_post" or \
             p_request_json["request"] == "get_flow" or \
-            p_request_json["request"] == "update_flow" or \
-            p_request_json['request'] == "cama_run_post":
+            p_request_json["request"] == "update_flow":
         check_inputs = False
 
     try:
