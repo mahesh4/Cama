@@ -82,7 +82,6 @@ def vegetation_lookup():
 
 @app.route('/update_manning', methods=['POST'])
 def update_manning():
-    # completed
     request_data = request.get_json()
     request_data['request'] = 'update_manning'
     try:
@@ -174,6 +173,17 @@ def peak_flow():
 def get_flow():
     request_data = request.get_json()
     request_data['request'] = 'get_flow'
+    try:
+        response = cama_convert.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route('/update_flow', methods=['POST'])
+def update_flow():
+    request_data = request.get_json()
+    request_data['request'] = 'update_flow'
     try:
         response = cama_convert.do_request(request_data)
         return response

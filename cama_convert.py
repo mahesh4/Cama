@@ -169,14 +169,25 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         fp.close()
 
 
-def update_wetland(flow):
-    file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
-    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
-    wetland_loc_multiple = numpy.loadtxt(file, usecols=range(2))
-    input_path = "/var/lib/model/CaMa_Pre/inp/hamid/"
+def update_wetland(flow_value):
+    file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
+
+    file_path = "/var/lib/model/Cama_Pre/map/hamid/lon_lat"
+    lon_lat = numpy.loadtxt(file_path)
+
+    # Finding nearest lon_lat to the wetland location
+    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
+    grid = distance.index(min(distance))
+
+    input_path = "/var/lib/model/CaMa_Post/inp/hamid/"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
-        with open(filename, 'a') as f:
+        with open(filename, 'r+') as f:
             flood_input = numpy.fromfile(f, dtype=numpy.float32)
+            flood_input[grid] += flow_value
+            f.truncate(0)
+            flood_input.tofile(f)
+            f.close()
 
 
 def delta_max_q_y(p_cell=0):
@@ -562,12 +573,13 @@ def cama_status_post(p_year=0):
 
 
 def get_flow(p_year, model):
+    p_year = str(p_year)
     if model == "pre":
-        base_path = "/var/lib/model/CaMa_Pre/out/hamid"
+        base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
         out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
 
     elif model == "post":
-        base_path = "/var/lib/model/CaMa_Post/out/hamid"
+        base_path = "/var/lib/model/CaMa_Post/out/hamid/"
         out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
 
     else:
@@ -593,7 +605,8 @@ def do_request(p_request_json):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run_pre" or \
-            p_request_json["request"] == 'get_flow' or \
+            p_request_json["request"] == "get_flow" or \
+            p_request_json["request"] == "update_flow" or \
             p_request_json['request'] == "cama_run_post":
         check_inputs = False
 
@@ -686,9 +699,12 @@ def do_request(p_request_json):
             result = dict()
             run_cama_post()
             result["message"] = "Execution queued"
-        elif p_request_json["message"] == "get_flow":
+        elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
-            print(result)
+        elif p_request_json["request"] == "update_wetland":
+            update_wetland(p_request_json["flow_value"])
+            result = dict()
+            result["message"] = "Flow updated successfully"
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
@@ -702,6 +718,9 @@ if __name__ == '__main__':
     # DEBUG INPUT FOR PEAK_FLOW
     # inp_string = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'
 
-    inp_string = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
-    payload = json.loads(inp_string)
+    payload = dict({
+        "request": "get_flow",
+        "year": 1919,
+        "model_type": "pre"
+    })
     do_request(payload)
