@@ -180,10 +180,10 @@ def get_flow():
         abort(500, e)
 
 
-@app.route('/update_flow', methods=['POST'])
+@app.route('/update_wetland', methods=['POST'])
 def update_flow():
     request_data = request.get_json()
-    request_data['request'] = 'update_flow'
+    request_data['request'] = 'update_wetland'
     try:
         response = cama_convert.do_request(request_data)
         return response

@@ -173,18 +173,18 @@ def update_wetland(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
-    file_path = "/var/lib/model/Cama_Pre/map/hamid/lonlat"
+    file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
     distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
-    grid = distance.index(min(distance))
+    min_lonlat_index = distance.index(min(distance))
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid/"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
         with open(filename, 'r+') as f:
             flood_input = numpy.fromfile(f, dtype=numpy.float32)
-            flood_input[grid] += flow_value
+            flood_input[min_lonlat_index] += flow_value
             f.truncate(0)
             flood_input.tofile(f)
             f.close()
@@ -607,7 +607,7 @@ def do_request(p_request_json):
             p_request_json["request"] == "cama_run_pre" or \
             p_request_json['request'] == "cama_run_post" or \
             p_request_json["request"] == "get_flow" or \
-            p_request_json["request"] == "update_flow":
+            p_request_json["request"] == "update_wetland":
         check_inputs = False
 
     try:
@@ -719,8 +719,7 @@ if __name__ == '__main__':
     # inp_string = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'
 
     payload = dict({
-        "request": "get_flow",
-        "year": 1919,
-        "model_type": "pre"
+        "request": "update_wetland",
+        "flow_value": 10000
     })
     do_request(payload)
