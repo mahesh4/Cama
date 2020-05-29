@@ -171,22 +171,27 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
 def update_wetland(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    # file_path = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple" ## For DEBUG
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    # file_path = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat" ## For DEBUG
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
     distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
     min_lonlat_index = distance.index(min(distance))
 
-    input_path = "/var/lib/model/CaMa_Post/inp/hamid/"
+    input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
         with open(filename, 'r+') as f:
             flood_input = numpy.fromfile(f, dtype=numpy.float32)
-            flood_input[min_lonlat_index] += flow_value
-            f.truncate(0)
-            flood_input.tofile(f)
+            file_no = int(filename.split('/')[-1].split('.')[0][7:])
+            if file_no <= 20111001:
+                flood_input[min_lonlat_index] += flow_value
+                f.truncate(0)
+                flood_input.tofile(f)
+
             f.close()
 
 
