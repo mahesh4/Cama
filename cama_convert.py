@@ -182,15 +182,13 @@ def update_wetland(flow_value):
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
-        with open(filename, 'r+') as f:
-            flood_input = numpy.fromfile(f, dtype=numpy.float32)
-            file_no = int(filename.split('/')[-1].split('.')[0][7:])
-            if file_no <= 20111001:
+        file_no = int(filename.split('/')[-1].split('.')[0][7:])
+        if file_no <= 20111001:
+            with open(filename, 'w+') as f:
+                flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 flood_input[min_lonlat_index] += flow_value
-                f.truncate(0)
                 flood_input.tofile(f)
-
-            f.close()
+                f.close()
 
 
 def delta_max_q_y(p_cell=0):
