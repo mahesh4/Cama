@@ -171,11 +171,9 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
 def update_wetland(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
-    # file_path = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple" ## For DEBUG
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
-    # file_path = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat" ## For DEBUG
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
@@ -494,7 +492,7 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     year_peaks = [0] * 97
     for i in range(1916, 2010):
         # output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
-        output_file = "/var/lib/cama/resources/outflows/outflw" + str(i) + ".bin"
+        output_file = "/var/lib/model/CaMa_Pre/out/hamid/outflw" + str(i) + ".bin"
         year_flow = map_input_to_flow(output_file, grid_cell, i, False)
         year_peaks[i - 1915] = max(year_flow)
 
@@ -717,7 +715,7 @@ def do_request(p_request_json):
             return json.dumps(result)  # this is where the data actually is sent back to the API
     except Exception as e:
         print("An exception occurred:" + str(e))
-
+        
 
 if __name__ == '__main__':
     # DEBUG INPUT FOR PEAK_FLOW
