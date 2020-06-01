@@ -184,9 +184,11 @@ def update_wetland(flow_value):
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
         file_no = int(filename.split('/')[-1].split('.')[0][7:])
         if file_no <= 20111001:
-            with open(filename, 'w+') as f:
+            with open(filename, 'r') as f:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
-                flood_input[min_lonlat_index] += flow_value
+                f.close()
+
+            with open(filename, 'w') as f:
                 flood_input.tofile(f)
                 f.close()
 
@@ -721,6 +723,6 @@ if __name__ == '__main__':
 
     payload = dict({
         "request": "update_wetland",
-        "flow_value": 10000
+        "flow_value": 0
     })
     do_request(payload)

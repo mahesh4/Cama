@@ -7,7 +7,6 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # completed, working
     response = {
         'message': 'This service provided by the Center for Assured and Scalable Data Engineering, Arizona State '
                    'University. '
