@@ -188,6 +188,8 @@ def update_wetland(flow_value):
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
+            flood_input[min_lonlat_index] += flow_value
+
             with open(filename, 'w') as f:
                 flood_input.tofile(f)
                 f.close()
