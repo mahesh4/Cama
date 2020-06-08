@@ -5,16 +5,16 @@ import math
 import os.path
 import subprocess
 import sys
+import glob
 
 import numpy
 from math import sin, cos, sqrt, atan2, radians
 
-
 YEAR = ""  # the year to evaluate
 PRE_PATH = ""  # file path to the pre-restoration modelling results
 POST_PATH = ""  # file path to the post-restoration modelling results
-LAT = 0  # the point to consider (lon)
-LON = 0  # the point to consider (lat)
+LAT = 0
+LON = 0
 LAT_MAT = [0]
 LON_MAT = [0]
 
@@ -68,9 +68,6 @@ def days_in_year(year):
 
 
 def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
-    """Maps the p_lat and p_long into a grid cell no
-    constants here are lat_baseline and lon_baseline (working)
-    """
     global LAT, LON
 
     if p_lat == 0:
@@ -84,7 +81,6 @@ def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
 
 
 def veg_to_manning(veg_type=""):
-    # (working)
     veg_type = veg_type.lower()
     if veg_type == "crop" or veg_type == "crops":
         return 0.05
@@ -128,31 +124,35 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     new_fld.tofile("/var/lib/model/CaMa_Post/map/hamid/fldman.bin")
 
     # 8) update the fldhgt.bin
-    file = open("/var/lib/model/CaMa_Pre/hamid/lonlat")
-    lon_lat_1 = numpy.fromfile(file, dtype=numpy.float32)
-    file.close()
-    lon_lat = numpy.array(lon_lat_1.shape, dtype=numpy.float32)
+    file = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat"  # for testing in local machine
+    lon_lat_1 = numpy.loadtxt(file, usecols=range(2))
+    lon_lat = lon_lat_1
 
-    for i in range(10):
-        lon_lat = lon_lat.append(lon_lat_1, axis=0)
+    for i in range(9):
+        lon_lat = numpy.vstack([lon_lat_1, lon_lat])
 
-    file = open("var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
+    file = open("/var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
+    # file = open("/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/fldhgt_original.bin", "r")  # for testing in
+    # local machine
     fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
 
-    lon_lat[:, 2] = fldhgt_original[0: fldhgt_original.shape[0], 0]
+    lon_lat = numpy.insert(lon_lat, 2, fldhgt_original[0: lon_lat.shape[0]], axis=1)
 
     lon_lat_4 = lon_lat
 
-    file = open("var/lib/model/CaMa_Pre/hamid/wetland_loc_multiple", "r")
-    lon_lat_5 = numpy.fromfile(file, dtype=numpy.float32)
-    file.close()
+    file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
+    lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
     for k in range(1, 3):
         lon_5 = lon_lat_5[k, 1]
         lat_5 = lon_lat_5[k, 0]
 
         lon_lat_2 = lon_lat_1[:, 0:2]
+        lon_lat_2 = numpy.insert(lon_lat_2, 2, 0, axis=1)
+
         for j in range(0, lon_lat_2.shape[0]):
             lon = lon_lat_2[j, 0]
             lat = lon_lat_2[j, 1]
@@ -160,12 +160,39 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
         lon_lat_3 = lon_lat_2[lon_lat_2[:, 2].argsort()]
 
-        location = numpy.where(lon_lat[:, 0] == lon_lat_3[0, 0] & lon_lat[:, 1] == lon_lat_3[0, 1])
-        lon_lat_4[location[0: size_wetland - 1], 2] = lon_lat[location[0: size_wetland - 1], 2]-1.5
+        location = numpy.where((lon_lat[:, 0] == lon_lat_3[0, 0]) & (lon_lat[:, 1] == lon_lat_3[0, 1]))
+        lon_lat_4[location[0: size_wetland + 1], 2] = lon_lat[location[0: size_wetland + 1], 2] - 1.5
 
     with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
-        fp.write(lon_lat_4[:, 2])
+        lon_lat_4[:, 2].astype('float32').tofile(fp)
+        print(lon_lat_4.shape)
         fp.close()
+
+
+def update_wetland(flow_value):
+    file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
+
+    file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    lon_lat = numpy.loadtxt(file_path)
+
+    # Finding nearest lon_lat to the wetland location
+    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
+    min_lonlat_index = distance.index(min(distance))
+
+    input_path = "/var/lib/model/CaMa_Post/inp/hamid"
+    for filename in glob.glob(os.path.join(input_path, '*.bin')):
+        file_no = int(filename.split('/')[-1].split('.')[0][7:])
+        if file_no <= 20111001:
+            with open(filename, 'r') as f:
+                flood_input = numpy.fromfile(f, dtype=numpy.float32)
+                f.close()
+
+            flood_input[min_lonlat_index] += flow_value
+
+            with open(filename, 'w') as f:
+                flood_input.tofile(f)
+                f.close()
 
 
 def delta_max_q_y(p_cell=0):
@@ -443,10 +470,8 @@ def config_cama(p_year=0):
     return "Success"
 
 
-"""Returns a year which has maximal difference / minimum flow(working)"""
-
-
 def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
+    """Returns a year which has maximal difference / minimum flow(working)"""
     global LAT, LON
 
     if p_lat == 0:
@@ -468,8 +493,8 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     # for each year in the range
     year_peaks = [0] * 97
     for i in range(1916, 2010):
-        output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
-        # output_file = "/var/lib/cama/resources/outflows/outflw" + str(i) + ".bin"
+        # output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
+        output_file = "/var/lib/model/CaMa_Pre/out/hamid/outflw" + str(i) + ".bin"
         year_flow = map_input_to_flow(output_file, grid_cell, i, False)
         year_peaks[i - 1915] = max(year_flow)
 
@@ -552,8 +577,30 @@ def cama_status_post(p_year=0):
         return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
 
 
+def get_flow(p_year, model):
+    p_year = str(p_year)
+    if model == "pre":
+        base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
+        out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
+
+    elif model == "post":
+        base_path = "/var/lib/model/CaMa_Post/out/hamid/"
+        out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
+
+    else:
+        return "Invalid model-type selected"
+
+    if os.path.isfile(out_path):
+        with open(out_path, 'r') as file:
+            outflow = numpy.fromfile(file, dtype=numpy.float32)
+            file.close()
+        return outflow
+
+    else:
+        return "output_flow doesn't exist for the year " + p_year
+
+
 def do_request(p_request_json):
-    # validate input
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
             p_request_json["request"] == "update_manning" or \
@@ -563,7 +610,9 @@ def do_request(p_request_json):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run_pre" or \
-            p_request_json['request'] == "cama_run_post":
+            p_request_json['request'] == "cama_run_post" or \
+            p_request_json["request"] == "get_flow" or \
+            p_request_json["request"] == "update_wetland":
         check_inputs = False
 
     try:
@@ -599,33 +648,24 @@ def do_request(p_request_json):
 
         result = None
         if p_request_json["request"] == "plot_hydrograph_from_wetlands":
-            # working, but doubt regarding the input files mapped, integrated
             result = plot_hydrograph_from_wetlands()
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
-            # working, but doubt regarding the input files mapped, integrated
             result = plot_hydrograph_nearest_reservoir()
         elif p_request_json["request"] == "peak_flow":
-            # not working
-            result = peak_flow(float(p_request_json["lat"]),
-                               float(p_request_json["lon"]),
-                               int(p_request_json["return_period"]))
-            print(result)
+            result = peak_flow(p_request_json["lat"], p_request_json["lon"], p_request_json["return_period"])
         elif p_request_json["request"] == "plot_hydrograph_deltas":
-            # working
             result = delta_max_all()
         elif p_request_json["request"] == "veg_lookup":
-            # working
             result = veg_to_manning(p_request_json["veg_type"])
         elif p_request_json["request"] == "coord_to_grid":
-            # working
-            result = coord_to_grid_cell(float(p_request_json["lat"]), float(p_request_json["lon"]))
+            result = coord_to_grid_cell(p_request_json["lat"], p_request_json["lon"])
         elif p_request_json["request"] == "update_manning":
             result = dict()
             result["succeeded"] = False
             try:
-                update_manning(float(p_request_json["lat"]), float(p_request_json["lon"]),
-                               float(p_request_json["riv_pre"]), float(p_request_json["riv_post"]),
-                               float(p_request_json["fld_pre"]), float(p_request_json["fld_post"]))
+                update_manning(p_request_json["lat"], p_request_json["lon"],
+                               p_request_json["riv_pre"], p_request_json["riv_post"],
+                               p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json['size_wetland'])
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
@@ -664,19 +704,27 @@ def do_request(p_request_json):
             result = dict()
             run_cama_post()
             result["message"] = "Execution queued"
+        elif p_request_json["request"] == "get_flow":
+            result = get_flow(p_request_json['year'], p_request_json['model_type'])
+        elif p_request_json["request"] == "update_wetland":
+            update_wetland(p_request_json["flow_value"])
+            result = dict()
+            result["message"] = "Flow updated successfully"
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
         if result is not None:
-            print(json.dumps(result))
             return json.dumps(result)  # this is where the data actually is sent back to the API
     except Exception as e:
         print("An exception occurred:" + str(e))
-
+        
 
 if __name__ == '__main__':
-    # instring = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'  # DEBUG INPUT FOR PEAK_FLOW
-    instring = "\n".join(sys.stdin.readlines())  # PRODUCTION INPUT
-    payload = json.loads(instring)
-    print(payload)
+    # DEBUG INPUT FOR PEAK_FLOW
+    # inp_string = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'
+
+    payload = dict({
+        "request": "update_wetland",
+        "flow_value": 0
+    })
     do_request(payload)

@@ -7,11 +7,10 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    # completed, working
     response = {
         'message': 'This service provided by the Center for Assured and Scalable Data Engineering, Arizona State '
                    'University. '
-    };
+    }
     return response
 
 
@@ -33,7 +32,6 @@ def to_arcgis():
 
 @app.route('/wetland_flow', methods=['POST'])
 def wetland_flow():
-    # completed, working
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_from_wetlands'
     try:
@@ -57,7 +55,6 @@ def reservoir_flow():
 
 @app.route('/comparative_flow', methods=['POST'])
 def comparative_flow():
-    # completed
     request_data = request.get_json()
     print(request_data)
     request_data['request'] = 'plot_hydrograph_deltas'
@@ -73,7 +70,6 @@ def comparative_flow():
 
 @app.route('/vegetation_lookup', methods=['POST'])
 def vegetation_lookup():
-    # completed
     request_data = request.get_json()
     request_data['request'] = 'veg_lookup'
     try:
@@ -85,7 +81,6 @@ def vegetation_lookup():
 
 @app.route('/update_manning', methods=['POST'])
 def update_manning():
-    # completed
     request_data = request.get_json()
     request_data['request'] = 'update_manning'
     try:
@@ -97,7 +92,6 @@ def update_manning():
 
 @app.route('/cama_status/pre', methods=['POST'])
 def cama_status_pre():
-    # compeleted
     request_data = request.get_json()
     request_data['request'] = 'cama_status_pre'
     try:
@@ -109,7 +103,6 @@ def cama_status_pre():
 
 @app.route('/cama_status/post', methods=['POST'])
 def cama_status_post():
-    # compeleted
     request_data = request.get_json()
     request_data['request'] = 'cama_status_post'
     try:
@@ -121,7 +114,6 @@ def cama_status_post():
 
 @app.route('/cama_set', methods=['POST'])
 def cama_set():
-    # work in progress
     request_data = request.get_json()
     request_data['request'] = 'cama_set'
     try:
@@ -133,7 +125,6 @@ def cama_set():
 
 @app.route('/cama_run/pre', methods=['POST'])
 def came_run_pre():
-    # completed, yet to check
     request_data = dict()
     request_data['request'] = 'cama_run_pre'
     try:
@@ -145,7 +136,6 @@ def came_run_pre():
 
 @app.route('/cama_run/post', methods=['POST'])
 def came_run_post():
-    # completed, yet to check
     request_data = dict()
     request_data['request'] = 'cama_run_post'
     try:
@@ -157,7 +147,6 @@ def came_run_post():
 
 @app.route('/coord_to_grid', methods=['POST'])
 def coor_to_grid():
-    # completed, yet to check
     request_data = request.get_json()
     request_data['request'] = 'coord_to_grid'
     try:
@@ -172,6 +161,28 @@ def peak_flow():
     # completed, not working, the server disk space is less to hold data for 100 yrs(Need to check with 10 yrs data)
     request_data = request.get_json()
     request_data['request'] = 'peak_flow'
+    try:
+        response = cama_convert.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route('/get_flow', methods=['POST'])
+def get_flow():
+    request_data = request.get_json()
+    request_data['request'] = 'get_flow'
+    try:
+        response = cama_convert.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route('/update_wetland', methods=['POST'])
+def update_flow():
+    request_data = request.get_json()
+    request_data['request'] = 'update_wetland'
     try:
         response = cama_convert.do_request(request_data)
         return response
