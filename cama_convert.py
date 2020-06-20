@@ -146,7 +146,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
     lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
-    for k in range(1, 3):
+    for k in range(3, 4):
         lon_5 = lon_lat_5[k, 1]
         lat_5 = lon_lat_5[k, 0]
 
@@ -171,13 +171,16 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
 def update_wetland(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
+    # file_path = "/Users/magesh/Downloads/flood/map/hamid/wetland_loc_multiple"  # FOR DEBUG
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    # file_path = "/Users/magesh/Downloads/flood/map/hamid/lonlat" # FOR DEBUG
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
-    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
+    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location
+                in lon_lat]
     min_lonlat_index = distance.index(min(distance))
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
@@ -717,7 +720,7 @@ def do_request(p_request_json):
             return json.dumps(result)  # this is where the data actually is sent back to the API
     except Exception as e:
         print("An exception occurred:" + str(e))
-        
+
 
 if __name__ == '__main__':
     # DEBUG INPUT FOR PEAK_FLOW
