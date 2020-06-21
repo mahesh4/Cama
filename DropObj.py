@@ -1,120 +1,63 @@
 import dropbox
-import os
+import glob
+import os.path
 import sys
-import webbrowser
 
-from configobj import ConfigObj
+from dropbox.files import WriteMode
+from db_connect import DBConnect
+ACCESS_TOKEN = "P0l57Ue0sVAAAAAAAAAAV7w3Do4RgzwqlAK0lcFgonTUksKAdp1YJALIWXKQItu5"
 
 
-########################################################################
-class DropObj(object):
-    """
-    Dropbox object that can access your dropbox folder,
-    as well as download and upload files to dropbox
-    """
+def upload_output(output_flow_type):
+    db = DBConnect()
+    dbx = dropbox.Dropbox(ACCESS_TOKEN)
 
-    # ----------------------------------------------------------------------
-    def __init__(self, filename=None, path='/'):
-        """Constructor"""
-        self.base_path = os.path.dirname(os.path.abspath(__file__))
-        self.filename = filename
-        self.path = path
-        self.client = None
+    try:
+        db.connect_db()
+        MONGO_CLIENT = db.get_connection()
+        database = MONGO_CLIENT["output"]
+        files_collection = database["files"]
 
-        config_path = os.path.join(self.base_path, "config.ini")
-        if os.path.exists(config_path):
-            try:
-                cfg = ConfigObj(config_path)
-            except IOError:
-                print("ERROR opening config file!")
-                sys.exit(1)
-            self.cfg_dict = cfg.dict()
+        if output_flow_type == "preflow":
+            output = files_collection.find_one({"status": "running", "flow": "preflow"})
+
+            if output is None:
+                raise Exception("record doesn't exist")
+
+            folder_name = "/" + output["folder_name"]
+            output_path = "/var/lib/model/CaMa_Pre/out/hamid"
         else:
-            print("ERROR: config.ini not found! Exiting!")
-            sys.exit(1)
+            output = files_collection.find_one({"status": "running", "flow": output_flow_type})
 
-        self.connect()
+            if output is None:
+                raise Exception("record doesn't exist")
 
-    # ----------------------------------------------------------------------
-    def connect(self):
-        """
-        Connect and authenticate with dropbox
-        """
-        app_key = self.cfg_dict["key"]
-        app_secret = self.cfg_dict["secret"]
+            folder_name = "/" + output["folder_name"]
+            output_path = "/var/lib/model/CaMa_Post/out/hamid"
 
-        access_type = "dropbox"
-        session = DropBox.session.DropboxSession(app_key, app_secret, access_type)
+        # Inserting the folder into dropbox
+        dbx.files_create_folder_v2(folder_name, autorename=False)
 
-        request_token = session.obtain_request_token()
+        # output_path = "/Users/magesh/Downloads/flood/post_flow_wetland"  # FOR DEBUG
+        # Uploading the results
+        for filename in glob.glob(os.path.join(output_path, '*.bin')):
+            with open(filename, 'rb') as fp:
+                dbx.files_upload(fp.read(), folder_name + "/" + filename.split("/")[-1], mode=WriteMode("overwrite"))
+                fp.close()
 
-        url = session.build_authorize_url(request_token)
-        msg = "Opening %s. Please make sure this application is allowed before continuing."
-        print(msg % url)
-        webbrowser.open(url)
-        input("Press enter to continue")
-        access_token = session.obtain_access_token(request_token)
+        # updating database to set status to completed
+        files_collection.update({"_id": output["_id"]}, {"$set": {"status": "completed"}})
 
-        self.client = DropBox.client.DropboxClient(session)
-
-    # ----------------------------------------------------------------------
-    def download_file(self, filename=None, outDir=None):
-        """
-        Download either the file passed to the class or the file passed
-        to the method
-        """
-
-        if filename:
-            fname = filename
-            f, metadata = self.client.get_file_and_metadata("/" + fname)
-        else:
-            fname = self.filename
-            f, metadata = self.client.get_file_and_metadata("/" + fname)
-
-        if outDir:
-            dst = os.path.join(outDir, fname)
-        else:
-            dst = fname
-
-        with open(fname, "w") as fh:
-            fh.write(f.read())
-
-        return dst, metadata
-
-    # ----------------------------------------------------------------------
-    def get_account_info(self):
-        """
-        Returns the account information, such as user's display name,
-        quota, email address, etc
-        """
-        return self.client.account_info()
-
-    # ----------------------------------------------------------------------
-    def list_folder(self, folder=None):
-        """
-        Return a dictionary of information about a folder
-        """
-        if folder:
-            folder_metadata = self.client.metadata(folder)
-        else:
-            folder_metadata = self.client.metadata("/")
-        return folder_metadata
-
-    # ----------------------------------------------------------------------
-    def upload_file(self):
-        """
-        Upload a file to dropbox, returns file info dict
-        """
-        try:
-            with open(self.filename) as fh:
-                path = os.path.join(self.path, self.filename)
-                res = self.client.put_file(path, fh)
-                print("uploaded: ", res)
-        except Exception as e:
-            print("ERROR: ", e)
-
-        return res
+    except Exception as e:
+        raise e
+    finally:
+        db.disconnect_db()
 
 
 if __name__ == "__main__":
-    drop = DropObj("somefile.txt")
+    input = sys.argv
+    if len(input) == 1:
+        if input[0] in ["preflow", "postflow_wetland", "postflow_groundwater"]:
+            upload_output(input[0])
+    else:
+        print("invalid arguments passed")

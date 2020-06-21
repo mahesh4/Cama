@@ -1,8 +1,28 @@
 from flask import Flask, request, abort
 from arcgis2geojson import arcgis2geojson
 import cama_convert
+from db_connect import DBConnect
+from flask import g
 
 app = Flask(__name__)
+
+
+def get_db():
+    """Opens a new database connection if there is none yet for the
+    current application context.
+    """
+    if not hasattr(g, 'mongodb'):
+        db = DBConnect()
+        db.connect_db()
+        g.mongodb = db
+    return g.mongodb.get_connection()
+
+
+@app.teardown_appcontext
+def teardown_db():
+    db = g.pop('mongodb', None)
+    if db is not None:
+        db.disconnect_db()
 
 
 @app.route('/')
@@ -127,8 +147,9 @@ def cama_set():
 def came_run_pre():
     request_data = dict()
     request_data['request'] = 'cama_run_pre'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -138,8 +159,9 @@ def came_run_pre():
 def came_run_post():
     request_data = dict()
     request_data['request'] = 'cama_run_post'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)

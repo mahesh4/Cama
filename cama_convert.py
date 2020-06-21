@@ -94,7 +94,7 @@ def veg_to_manning(veg_type=""):
         return None  # not a recognized type of vegetation
 
 
-def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, size_wetland):
+def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, size_wetland, ):
     # this function updates the manning parameters of the post-restoration model
     # you will need to call the model and scrape the results yourself manually
 
@@ -283,7 +283,7 @@ def delta_min_q_y(p_cell=0):
     return post_avg_min - pre_avg_min
 
 
-def plot_hydrograph_from_wetlands():
+def plot_hydrograph_from_wetlands(mongo_client):
     global PRE_PATH, POST_PATH, LAT, LON
 
     grid_cell = coord_to_grid_cell()
@@ -520,14 +520,37 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     return min_year
 
 
-def run_cama_pre():
+def run_cama_pre(mongo_client):
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+    try:
+        database = mongo_client["output"]
+        files_collection = database["files"]
+        file = files_collection.find_one({"flow": "preflow"})
+        if file is None:
+            file = dict({"flow": "preflow", "status": "running", "folder_name": "output_0"})
+            files_collection.insert_one(file)
+        else:
+            files_collection.update_one({"_id": file["_id"]}, {"$set": {"status": "running"}})
+        subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+    except Exception as e:
+        raise e
 
 
-def run_cama_post():
+def run_cama_post(mongo_client, flow, metadata):
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+    try:
+        database = mongo_client["output"]
+        files_collection = database["files"]
+        no_of_files = files_collection.count()
+
+        if flow not in ["postflow_wetland", "postflow_groundwater"]:
+            raise Exception("invalid flow")
+
+        folder_name = "output_" + flow + "_" + str(no_of_files + 1)
+        files_collection.insert_one({"folder_name": folder_name, "flow": flow, "metadata": metadata, "status": "running"})
+        subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+    except Exception as e:
+        raise e
 
 
 def cama_status_pre(p_year=0):
@@ -603,7 +626,7 @@ def get_flow(p_year, model):
         return "output_flow doesn't exist for the year " + p_year
 
 
-def do_request(p_request_json):
+def do_request(p_request_json, mongo_client):
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
             p_request_json["request"] == "update_manning" or \
@@ -651,9 +674,9 @@ def do_request(p_request_json):
 
         result = None
         if p_request_json["request"] == "plot_hydrograph_from_wetlands":
-            result = plot_hydrograph_from_wetlands()
+            result = plot_hydrograph_from_wetlands(mongo_client)
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
-            result = plot_hydrograph_nearest_reservoir()
+            result = plot_hydrograph_nearest_reservoir(mongo_client)
         elif p_request_json["request"] == "peak_flow":
             result = peak_flow(p_request_json["lat"], p_request_json["lon"], p_request_json["return_period"])
         elif p_request_json["request"] == "plot_hydrograph_deltas":
@@ -701,11 +724,11 @@ def do_request(p_request_json):
                 result["message"] = response
         elif p_request_json["request"] == "cama_run_pre":
             result = dict()
-            run_cama_pre()
+            run_cama_pre(mongo_client)
             result["message"] = "Execution queued"
         elif p_request_json["request"] == "cama_run_post":
             result = dict()
-            run_cama_post()
+            run_cama_post(mongo_client)
             result["message"] = "Execution queued"
         elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
