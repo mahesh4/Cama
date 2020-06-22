@@ -19,7 +19,7 @@ def get_db():
 
 
 @app.teardown_appcontext
-def teardown_db():
+def close_db(error):
     db = g.pop('mongodb', None)
     if db is not None:
         db.disconnect_db()

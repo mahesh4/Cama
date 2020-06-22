@@ -536,7 +536,7 @@ def run_cama_pre(mongo_client):
         raise e
 
 
-def run_cama_post(mongo_client, flow, metadata):
+def run_cama_post(flow, metadata, mongo_client):
     # expects cama to be pre-configured
     try:
         database = mongo_client["output"]
@@ -728,7 +728,7 @@ def do_request(p_request_json, mongo_client):
             result["message"] = "Execution queued"
         elif p_request_json["request"] == "cama_run_post":
             result = dict()
-            run_cama_post(mongo_client)
+            run_cama_post(p_request_json["flow"], p_request_json["metadata"], mongo_client)
             result["message"] = "Execution queued"
         elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])

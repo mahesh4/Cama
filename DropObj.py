@@ -56,8 +56,8 @@ def upload_output(output_flow_type):
 
 if __name__ == "__main__":
     input = sys.argv
-    if len(input) == 1:
-        if input[0] in ["preflow", "postflow_wetland", "postflow_groundwater"]:
-            upload_output(input[0])
+    if len(input) == 2:
+        if input[1] in ["preflow", "postflow_wetland", "postflow_groundwater"]:
+            upload_output(input[1])
     else:
         print("invalid arguments passed")
