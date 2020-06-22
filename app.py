@@ -157,7 +157,7 @@ def came_run_pre():
 
 @app.route('/cama_run/post', methods=['POST'])
 def came_run_post():
-    request_data = dict()
+    request_data = request.get_json()
     request_data['request'] = 'cama_run_post'
     mongo_client = get_db()
     try:
