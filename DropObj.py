@@ -5,13 +5,12 @@ import sys
 
 from dropbox.files import WriteMode
 from db_connect import DBConnect
-ACCESS_TOKEN = "P0l57Ue0sVAAAAAAAAAAV7w3Do4RgzwqlAK0lcFgonTUksKAdp1YJALIWXKQItu5"
+ACCESS_TOKEN = "P0l57Ue0sVAAAAAAAAAAXFpFpLuSBdt6rOGnBClN4D5kbuaT_Vg83AiddUFJSEuh"
 
 
 def upload_output(output_flow_type):
     db = DBConnect()
     dbx = dropbox.Dropbox(ACCESS_TOKEN)
-
     try:
         db.connect_db()
         MONGO_CLIENT = db.get_connection()
@@ -52,6 +51,16 @@ def upload_output(output_flow_type):
         raise e
     finally:
         db.disconnect_db()
+
+
+def download_file(folder_name, file_name):
+    try:
+        dbx = dropbox.Dropbox(ACCESS_TOKEN)
+        path = "/" + folder_name + "/" + file_name
+        dbx.files_download_to_file(os.path.join(os.getcwd(), "files", file_name), path)
+
+    except Exception as e:
+        raise e
 
 
 if __name__ == "__main__":
