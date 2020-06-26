@@ -5,8 +5,7 @@ import sys
 
 from dropbox.files import WriteMode
 from db_connect import DBConnect
-ACCESS_TOKEN = "P0l57Ue0sVAAAAAAAAAAXFpFpLuSBdt6rOGnBClN4D5kbuaT_Vg83AiddUFJSEuh"
-
+ACCESS_TOKEN = "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
 
 def upload_output(output_flow_type):
     db = DBConnect()
