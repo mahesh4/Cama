@@ -54,20 +54,24 @@ def to_arcgis():
 def wetland_flow():
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_from_wetlands'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/reservoir_flow', methods=['POST'])
+@app.route("/reservoir_flow", methods=["POST"])
 def reservoir_flow():
     # completed
     request_data = request.get_json()
-    request_data['request'] = 'plot_hydrograph_nearest_reservoir'
+    request_data["request"] = "plot_hydrograph_nearest_reservoir"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -76,24 +80,24 @@ def reservoir_flow():
 @app.route('/comparative_flow', methods=['POST'])
 def comparative_flow():
     request_data = request.get_json()
-    print(request_data)
     request_data['request'] = 'plot_hydrograph_deltas'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
-        print('response is :')
-        print(response)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
-        print(e)
         abort(500, e)
 
 
 @app.route('/vegetation_lookup', methods=['POST'])
 def vegetation_lookup():
     request_data = request.get_json()
-    request_data['request'] = 'veg_lookup'
+    request_data["request"] = "veg_lookup"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -103,30 +107,36 @@ def vegetation_lookup():
 def update_manning():
     request_data = request.get_json()
     request_data['request'] = 'update_manning'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/cama_status/pre', methods=['POST'])
+@app.route("/cama_status", methods=["POST"])
 def cama_status_pre():
     request_data = request.get_json()
-    request_data['request'] = 'cama_status_pre'
+    request_data["request"] = "cama_status"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/cama_status/post', methods=['POST'])
+@app.route("/cama_status/post", methods=["POST"])
 def cama_status_post():
     request_data = request.get_json()
-    request_data['request'] = 'cama_status_post'
+    request_data["request"] = "cama_status_post"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -136,8 +146,9 @@ def cama_status_post():
 def cama_set():
     request_data = request.get_json()
     request_data['request'] = 'cama_set'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -171,8 +182,9 @@ def came_run_post():
 def coor_to_grid():
     request_data = request.get_json()
     request_data['request'] = 'coord_to_grid'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)

@@ -7,6 +7,7 @@ from dropbox.files import WriteMode
 from db_connect import DBConnect
 ACCESS_TOKEN = "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
 
+
 def upload_output(output_flow_type):
     db = DBConnect()
     dbx = dropbox.Dropbox(ACCESS_TOKEN)
@@ -52,12 +53,29 @@ def upload_output(output_flow_type):
         db.disconnect_db()
 
 
+def folder_exists(folder_name):
+    dbx = dropbox.Dropbox(ACCESS_TOKEN)
+    try:
+        metadata = dbx.files_get_metadata("/" + folder_name)
+        if isinstance(metadata, dropbox.files.FolderMetadata):
+            return False
+        else:
+            return True
+    except Exception as e:
+        return True
+
+
+
 def download_file(folder_name, file_name):
     try:
         dbx = dropbox.Dropbox(ACCESS_TOKEN)
         path = "/" + folder_name + "/" + file_name
-        dbx.files_download_to_file(os.path.join(os.getcwd(), "files", file_name), path)
 
+        if not os.path.exists(os.path.join(os.getcwd(), "output", folder_name)):
+            os.mkdir(os.path.join(os.getcwd(), "output", folder_name))
+
+        dbx.files_download_to_file(os.path.join(os.getcwd(), "output", folder_name, file_name), path)
+        print("downloaded ", file_name)
     except Exception as e:
         raise e
 
@@ -69,3 +87,4 @@ if __name__ == "__main__":
             upload_output(input[1])
     else:
         print("invalid arguments passed")
+    # download_file("output_0", "outflw2004.bin")
