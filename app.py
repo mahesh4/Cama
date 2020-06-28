@@ -117,7 +117,7 @@ def update_manning():
 
 
 @app.route("/cama_status", methods=["POST"])
-def cama_status_pre():
+def cama_status():
     request_data = request.get_json()
     request_data["request"] = "cama_status"
     mongo_client = get_db()
@@ -142,8 +142,8 @@ def cama_set():
 
 
 @app.route('/cama_run', methods=['POST'])
-def came_run_pre():
-    request_data = dict()
+def came_run():
+    request_data = request.get_json()
     request_data['request'] = 'cama_run'
     mongo_client = get_db()
     try:
