@@ -754,7 +754,7 @@ if __name__ == '__main__':
         "lat": 30.902,
         "lon": -96.707,
         "year": 1920,
-        "request": "plot_hydrograph_nearest_reservoir"
+        "request": "plot_hydrograph_deltas"
     })
 
     print(do_request(payload, mongo_client))
