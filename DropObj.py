@@ -5,6 +5,7 @@ import sys
 
 from dropbox.files import WriteMode
 from db_connect import DBConnect
+
 ACCESS_TOKEN = "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
 
 
@@ -18,7 +19,7 @@ def upload_output(model):
         files_collection = database["files"]
 
         if model == "preflow":
-            output = files_collection.find_one({"status": "running", "flow": "preflow"})
+            output = files_collection.find_one({"status": "running", "model": "preflow"})
 
             if output is None:
                 raise Exception("record doesn't exist")
@@ -64,7 +65,6 @@ def folder_exists(folder_name):
         return False
 
 
-
 def download_file(folder_name, file_name):
     try:
         dbx = dropbox.Dropbox(ACCESS_TOKEN)
@@ -86,4 +86,4 @@ if __name__ == "__main__":
             upload_output(input[1])
     else:
         print("invalid arguments passed")
-    # download_file("output_0", "outflw2004.bin")
+    # download_file("output_test", "outflw1922.bin")
