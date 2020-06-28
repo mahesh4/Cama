@@ -647,7 +647,6 @@ def do_request(p_request_json, mongo_client):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run" or \
-            p_request_json['request'] == "cama_run_post" or \
             p_request_json["request"] == "get_flow" or \
             p_request_json["request"] == "update_wetland":
         check_inputs = False
@@ -752,14 +751,12 @@ def do_request(p_request_json, mongo_client):
 if __name__ == '__main__':
     db = DBConnect()
     db.connect_db()
-    mongo_client = db
+    mongo_client = db.get_connection()
 
     payload = dict({
-        "request": "peak_flow",
-        "return_period": 10,
-        "lat": 30.902,
-        "lon": -96.707,
-        "folder_name": "output_0"
+        "request": "cama_run",
+        "folder_name": "test_preflow",
+        "model": "preflow"
     })
 
     print(do_request(payload, mongo_client))
