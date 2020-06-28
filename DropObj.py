@@ -18,21 +18,14 @@ def upload_output(model):
         database = MONGO_CLIENT["output"]
         files_collection = database["files"]
 
+        output = files_collection.find_one({"status": "running", "model": model})
+        if output is None:
+            raise Exception("record doesn't exist")
+
+        folder_name = "/" + output["folder_name"]
         if model == "preflow":
-            output = files_collection.find_one({"status": "running", "model": "preflow"})
-
-            if output is None:
-                raise Exception("record doesn't exist")
-
-            folder_name = "/" + output["folder_name"]
             output_path = "/var/lib/model/CaMa_Pre/out/hamid"
         else:
-            output = files_collection.find_one({"status": "running", "flow": model})
-
-            if output is None:
-                raise Exception("record doesn't exist")
-
-            folder_name = "/" + output["folder_name"]
             output_path = "/var/lib/model/CaMa_Post/out/hamid"
 
         # Inserting the folder into dropbox
