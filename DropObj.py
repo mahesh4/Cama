@@ -61,7 +61,7 @@ def folder_exists(folder_name):
         else:
             return True
     except Exception as e:
-        return True
+        return False
 
 
 

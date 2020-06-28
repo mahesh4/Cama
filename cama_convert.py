@@ -555,13 +555,15 @@ def run_cama(p_model, folder_name, mongo_client):
             new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name})
             files_collection.insert_one(new_file)
 
-        # Starting the execution of the model
-        if p_model == "preflow":
-            subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
-        elif p_model == "postflow":
-            subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+            # Starting the execution of the model
+            if p_model == "preflow":
+                subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+            elif p_model == "postflow":
+                subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+            else:
+                raise Exception("Invalid model")
         else:
-            raise Exception("Invalid model")
+            return -2
 
     except Exception as e:
         raise e
@@ -728,6 +730,8 @@ def do_request(p_request_json, mongo_client):
             status = run_cama(p_request_json["model"], p_request_json["folder_name"], mongo_client)
             if status == -1:
                 result["message"] = "There is already a model in execution, pls wait"
+            elif status == -2:
+                result["message"] = "The folder_name already exists in dropbox, choose a unique folder_name"
             else:
                 result["message"] = "Execution queued"
         elif p_request_json["request"] == "get_flow":
@@ -755,7 +759,7 @@ if __name__ == '__main__':
 
     payload = dict({
         "request": "cama_run",
-        "folder_name": "test_preflow",
+        "folder_name": "output_0",
         "model": "preflow"
     })
 
