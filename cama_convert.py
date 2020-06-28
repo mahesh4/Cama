@@ -716,15 +716,6 @@ def do_request(p_request_json, mongo_client):
             else:
                 result["completed"] = False
                 result["message"] = response
-        elif p_request_json["request"] == "cama_status_post":
-            result = dict()
-            response = cama_status(p_request_json["model"], p_request_json["year"])
-            if response[0] == '2':
-                result["completed"] = True
-                result["timestamp"] = response
-            else:
-                result["completed"] = False
-                result["message"] = response
         elif p_request_json["request"] == "cama_set":
             result = dict()
             response = config_cama(p_request_json["year"])
@@ -735,7 +726,7 @@ def do_request(p_request_json, mongo_client):
                 result["message"] = response
         elif p_request_json["request"] == "cama_run":
             result = dict()
-            status = run_cama_pre(mongo_client)
+            status = run_cama(p_request_json["model"], p_request_json["folder_name"], mongo_client)
             if status == -1:
                 result["message"] = "There is already a model in execution, pls wait"
             else:

@@ -129,19 +129,6 @@ def cama_status_pre():
         abort(500, e)
 
 
-@app.route("/cama_status/post", methods=["POST"])
-def cama_status_post():
-    request_data = request.get_json()
-    request_data["request"] = "cama_status_post"
-    mongo_client = get_db()
-
-    try:
-        response = cama_convert.do_request(request_data, mongo_client)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
 @app.route('/cama_set', methods=['POST'])
 def cama_set():
     request_data = request.get_json()
@@ -154,22 +141,10 @@ def cama_set():
         abort(500, e)
 
 
-@app.route('/cama_run/pre', methods=['POST'])
+@app.route('/cama_run', methods=['POST'])
 def came_run_pre():
     request_data = dict()
-    request_data['request'] = 'cama_run_pre'
-    mongo_client = get_db()
-    try:
-        response = cama_convert.do_request(request_data, mongo_client)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
-@app.route('/cama_run/post', methods=['POST'])
-def came_run_post():
-    request_data = request.get_json()
-    request_data['request'] = 'cama_run_post'
+    request_data['request'] = 'cama_run'
     mongo_client = get_db()
     try:
         response = cama_convert.do_request(request_data, mongo_client)

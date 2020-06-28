@@ -8,7 +8,7 @@ from db_connect import DBConnect
 ACCESS_TOKEN = "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
 
 
-def upload_output(output_flow_type):
+def upload_output(model):
     db = DBConnect()
     dbx = dropbox.Dropbox(ACCESS_TOKEN)
     try:
@@ -17,7 +17,7 @@ def upload_output(output_flow_type):
         database = MONGO_CLIENT["output"]
         files_collection = database["files"]
 
-        if output_flow_type == "preflow":
+        if model == "preflow":
             output = files_collection.find_one({"status": "running", "flow": "preflow"})
 
             if output is None:
@@ -26,7 +26,7 @@ def upload_output(output_flow_type):
             folder_name = "/" + output["folder_name"]
             output_path = "/var/lib/model/CaMa_Pre/out/hamid"
         else:
-            output = files_collection.find_one({"status": "running", "flow": output_flow_type})
+            output = files_collection.find_one({"status": "running", "flow": model})
 
             if output is None:
                 raise Exception("record doesn't exist")
@@ -37,7 +37,6 @@ def upload_output(output_flow_type):
         # Inserting the folder into dropbox
         dbx.files_create_folder_v2(folder_name, autorename=False)
 
-        # output_path = "/Users/magesh/Downloads/flood/post_flow_wetland"  # FOR DEBUG
         # Uploading the results
         for filename in glob.glob(os.path.join(output_path, '*.bin')):
             with open(filename, 'rb') as fp:
