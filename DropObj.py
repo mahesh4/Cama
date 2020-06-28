@@ -79,11 +79,21 @@ def download_file(folder_name, file_name):
         raise e
 
 
+def delete_folder(folder_name):
+    try:
+        dbx = dropbox.Dropbox(ACCESS_TOKEN)
+        path = "/" + folder_name
+        dbx.files_delete_v2(path)
+    except Exception as e:
+        raise e
+
+
 if __name__ == "__main__":
-    input = sys.argv
-    if len(input) == 2:
-        if input[1] in ["preflow", "postflow_wetland", "postflow_groundwater"]:
-            upload_output(input[1])
+    input_arg = sys.argv
+    if len(input_arg) == 2:
+        if input_arg[1] in ["preflow", "postflow_wetland", "postflow_groundwater"]:
+            upload_output(input_arg[1])
     else:
         print("invalid arguments passed")
     # download_file("output_test", "outflw1922.bin")
+    # delete_folder("output_test")

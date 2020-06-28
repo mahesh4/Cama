@@ -199,5 +199,17 @@ def update_flow():
         abort(500, e)
 
 
+@app.route("/delete_results", methods=["POST"])
+def delete_results():
+    request_data = request.get_json()
+    request_data["request"] = "delete_results"
+    mongo_client = get_db()
+    try:
+        response = cama_convert.do_request(request_data, mongo_client)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')  # run app in debug mode on port 80
