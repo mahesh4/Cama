@@ -540,7 +540,7 @@ def peak_flow(folder_name, p_lat=0.0, p_lon=0.0, floodpeak=10):
     return min_year
 
 
-def run_cama(p_model, folder_name, mongo_client):
+def run_cama(p_model, folder_name, metadata, mongo_client):
     # expects cama to be pre-configured
     try:
         database = mongo_client["output"]
@@ -550,16 +550,16 @@ def run_cama(p_model, folder_name, mongo_client):
         if len(file) > 0:
             return -1
 
-        # There exist no such document with the folder_name in the DB and in dropbox
+        # Check if there exist no such document with the folder_name in the DB and in dropbox
         file = files_collection.find_one({"folder_name": folder_name})
         if file is None and not DropObj.folder_exists(folder_name):
-            new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name})
+            new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name, "metadata": metadata})
             files_collection.insert_one(new_file)
 
             # Starting the execution of the model
             if p_model == "preflow":
                 subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
-            elif p_model == "postflow":
+            elif p_model == "postflow_wetland" or p_model == "postflow_groundwater":
                 subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
             else:
                 raise Exception("Invalid model")
@@ -592,7 +592,7 @@ def cama_status(folder_name, mongo_client):
         files_collection = database["files"]
         file = files_collection.find_one({"folder_name": folder_name})
         if file is None:
-            return "folder_name doesn't exist"
+            return "Record doesn't exist"
         else:
             return file["status"]
     except Exception as e:
@@ -710,7 +710,7 @@ def do_request(p_request_json, mongo_client):
                 result["message"] = response
         elif p_request_json["request"] == "cama_run":
             result = dict()
-            status = run_cama(p_request_json["model"], p_request_json["folder_name"], mongo_client)
+            status = run_cama(p_request_json["model"], p_request_json["folder_name"], p_request_json["metadata"], mongo_client)
             if status == -1:
                 result["message"] = "There is already a model in execution, pls wait"
             elif status == -2:
