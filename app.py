@@ -165,13 +165,15 @@ def coor_to_grid():
         abort(500, e)
 
 
+# Mahesh: Done
 @app.route('/peak_flow', methods=['POST'])
 def peak_flow():
     # completed, not working, the server disk space is less to hold data for 100 yrs(Need to check with 10 yrs data)
     request_data = request.get_json()
     request_data['request'] = 'peak_flow'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
