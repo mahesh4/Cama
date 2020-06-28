@@ -1,8 +1,28 @@
 from flask import Flask, request, abort
 from arcgis2geojson import arcgis2geojson
 import cama_convert
+from db_connect import DBConnect
+from flask import g
 
 app = Flask(__name__)
+
+
+def get_db():
+    """Opens a new database connection if there is none yet for the
+    current application context.
+    """
+    if not hasattr(g, 'mongodb'):
+        db = DBConnect()
+        db.connect_db()
+        g.mongodb = db
+    return g.mongodb.get_connection()
+
+
+@app.teardown_appcontext
+def close_db(error):
+    db = g.pop('mongodb', None)
+    if db is not None:
+        db.disconnect_db()
 
 
 @app.route('/')
@@ -34,20 +54,24 @@ def to_arcgis():
 def wetland_flow():
     request_data = request.get_json()
     request_data['request'] = 'plot_hydrograph_from_wetlands'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/reservoir_flow', methods=['POST'])
+@app.route("/reservoir_flow", methods=["POST"])
 def reservoir_flow():
     # completed
     request_data = request.get_json()
-    request_data['request'] = 'plot_hydrograph_nearest_reservoir'
+    request_data["request"] = "plot_hydrograph_nearest_reservoir"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -56,24 +80,24 @@ def reservoir_flow():
 @app.route('/comparative_flow', methods=['POST'])
 def comparative_flow():
     request_data = request.get_json()
-    print(request_data)
     request_data['request'] = 'plot_hydrograph_deltas'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
-        print('response is :')
-        print(response)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
-        print(e)
         abort(500, e)
 
 
 @app.route('/vegetation_lookup', methods=['POST'])
 def vegetation_lookup():
     request_data = request.get_json()
-    request_data['request'] = 'veg_lookup'
+    request_data["request"] = "veg_lookup"
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -83,30 +107,23 @@ def vegetation_lookup():
 def update_manning():
     request_data = request.get_json()
     request_data['request'] = 'update_manning'
+    mongo_client = get_db()
+
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/cama_status/pre', methods=['POST'])
+@app.route("/cama_status", methods=["POST"])
 def cama_status_pre():
     request_data = request.get_json()
-    request_data['request'] = 'cama_status_pre'
-    try:
-        response = cama_convert.do_request(request_data)
-        return response
-    except Exception as e:
-        abort(500, e)
+    request_data["request"] = "cama_status"
+    mongo_client = get_db()
 
-
-@app.route('/cama_status/post', methods=['POST'])
-def cama_status_post():
-    request_data = request.get_json()
-    request_data['request'] = 'cama_status_post'
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -116,30 +133,21 @@ def cama_status_post():
 def cama_set():
     request_data = request.get_json()
     request_data['request'] = 'cama_set'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/cama_run/pre', methods=['POST'])
+@app.route('/cama_run', methods=['POST'])
 def came_run_pre():
     request_data = dict()
-    request_data['request'] = 'cama_run_pre'
+    request_data['request'] = 'cama_run'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
-@app.route('/cama_run/post', methods=['POST'])
-def came_run_post():
-    request_data = dict()
-    request_data['request'] = 'cama_run_post'
-    try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
@@ -149,8 +157,9 @@ def came_run_post():
 def coor_to_grid():
     request_data = request.get_json()
     request_data['request'] = 'coord_to_grid'
+    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data)
+        response = cama_convert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)

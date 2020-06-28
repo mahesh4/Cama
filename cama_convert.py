@@ -2,13 +2,15 @@ import calendar
 import datetime
 import json
 import math
-import os.path
+import os.path, shutil
 import subprocess
-import sys
+import DropObj
 import glob
 
 import numpy
 from math import sin, cos, sqrt, atan2, radians
+
+from db_connect import DBConnect
 
 YEAR = ""  # the year to evaluate
 PRE_PATH = ""  # file path to the pre-restoration modelling results
@@ -19,6 +21,7 @@ LAT_MAT = [0]
 LON_MAT = [0]
 
 
+# Mahesh: Done
 def pos2dis(lat1, lon1, lat2, lon2):
     # approximate radius of earth in km
     R = 6373.0
@@ -33,6 +36,7 @@ def pos2dis(lat1, lon1, lat2, lon2):
     return distance
 
 
+# Mahesh: Done
 def is_number(in_string):
     try:
         float(in_string)
@@ -41,32 +45,44 @@ def is_number(in_string):
         return False
 
 
+# Mahesh: Done
 def set_configuration(new_config):
     global YEAR, PRE_PATH, POST_PATH, LAT, LON
 
     if "year" in new_config:
         YEAR = new_config["year"]
     if "pre_path" in new_config:
-        PRE_PATH = new_config["pre_path"]
+        path = new_config["pre_path"].split("/")
+        folder_name = path[1]
+        file_name = path[2]
+        DropObj.download_file(folder_name, file_name)
+        PRE_PATH = os.path.join(os.getcwd(), "output", folder_name, file_name)
     if "post_path" in new_config:
-        POST_PATH = new_config["post_path"]
+        path = new_config["post_path"].split("/")
+        folder_name = path[1]
+        file_name = path[2]
+        DropObj.download_file(folder_name, file_name)
+        POST_PATH = os.path.join(os.getcwd(), "output", folder_name, file_name)
     if "lat" in new_config:
         LAT = new_config["lat"]
     if "lon" in new_config:
         LON = new_config["lon"]
 
 
+# Mahesh: Done
 def init_matrix(rows, cols, init_val):
     # noinspection PyUnusedLocal
     return [[init_val for i in range(cols)] for j in range(rows)]
 
 
+# Mahesh: Done
 def days_in_year(year):
     if calendar.isleap(year):
         return 366
     return 365
 
 
+# Mahesh: Done
 def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
     global LAT, LON
 
@@ -80,6 +96,7 @@ def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
     return math.floor((lat_baseline - p_lat) * 10) * 90 + math.floor(((lon_baseline + p_lon) * 10) + 1)
 
 
+# Mahesh: Done
 def veg_to_manning(veg_type=""):
     veg_type = veg_type.lower()
     if veg_type == "crop" or veg_type == "crops":
@@ -146,7 +163,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
     lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
-    for k in range(1, 3):
+    for k in range(3, 4):
         lon_5 = lon_lat_5[k, 1]
         lat_5 = lon_lat_5[k, 0]
 
@@ -177,7 +194,8 @@ def update_wetland(flow_value):
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
-    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location in lon_lat]
+    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location
+                in lon_lat]
     min_lonlat_index = distance.index(min(distance))
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
@@ -280,6 +298,7 @@ def delta_min_q_y(p_cell=0):
     return post_avg_min - pre_avg_min
 
 
+# Mahesh: Done
 def plot_hydrograph_from_wetlands():
     global PRE_PATH, POST_PATH, LAT, LON
 
@@ -291,6 +310,7 @@ def plot_hydrograph_from_wetlands():
     return line1, line2
 
 
+# Mahesh: Done
 def map_input_to_flow(file_path, grid_cell, p_year=0, p_clean=False):
     global YEAR
 
@@ -470,7 +490,8 @@ def config_cama(p_year=0):
     return "Success"
 
 
-def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
+# Mahesh: Done
+def peak_flow(folder_name, p_lat=0.0, p_lon=0.0, floodpeak=10):
     """Returns a year which has maximal difference / minimum flow(working)"""
     global LAT, LON
 
@@ -493,8 +514,9 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     # for each year in the range
     year_peaks = [0] * 97
     for i in range(1916, 2010):
-        # output_file = "/Users/magesh/Documents/Cama/hamid/outflw" + str(i) + ".bin"  # DEBUG *****
-        output_file = "/var/lib/model/CaMa_Pre/out/hamid/outflw" + str(i) + ".bin"
+        # Downloading the file from dropbox
+        DropObj.download_file(folder_name, "outflw" + str(i) + ".bin")
+        output_file = os.path.join(os.getcwd(), "output", folder_name, "outflw" + str(i) + ".bin")
         year_flow = map_input_to_flow(output_file, grid_cell, i, False)
         year_peaks[i - 1915] = max(year_flow)
 
@@ -517,17 +539,51 @@ def peak_flow(p_lat=0.0, p_lon=0.0, floodpeak=10):
     return min_year
 
 
-def run_cama_pre():
+def run_cama(p_model, folder_name, mongo_client):
     # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+    try:
+        database = mongo_client["output"]
+        files_collection = database["files"]
+        # Check if there is no existing model running
+        file = list(files_collection.find({"status": "running", "model": p_model}))
+        if len(file) > 0:
+            return -1
+
+        # There exist no such document with the folder_name in the DB and in dropbox
+        file = files_collection.find_one({"folder_name": folder_name})
+        if file is None and not DropObj.folder_exists(folder_name):
+            new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name})
+            files_collection.insert_one(new_file)
+
+        # Starting the execution of the model
+        if p_model == "preflow":
+            subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+        elif p_model == "postflow":
+            subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+        else:
+            raise Exception("Invalid model")
+
+    except Exception as e:
+        raise e
+
+    return 1
 
 
-def run_cama_post():
-    # expects cama to be pre-configured
-    subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+def clean_up():
+    # Deleting all content of the output folder
+    folder = os.path.join(os.getcwd(), "output")
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def cama_status_pre(p_year=0):
+def cama_status(p_model, p_year=0):
     global YEAR
 
     if p_year == 0:
@@ -535,12 +591,19 @@ def cama_status_pre(p_year=0):
 
     if p_year < 1915 or p_year > 2011:
         return "Invalid CAMA year: " + str(p_year)
+
     p_year = str(p_year)  # get ready for concat ops
 
-    base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
+    if p_model == "preflow":
+        base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
+    elif p_model == "postflow":
+        base_path = "/var/lib/model/CaMa_Post/out/hamid"
+    else:
+        return "invalid model"
 
     log_path = base_path + "log.txt"
     log = open(log_path).readlines()[-1]
+
     if "end:" not in log:
         return "outflw" + str(p_year) + " still executing."
 
@@ -552,32 +615,7 @@ def cama_status_pre(p_year=0):
         return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
 
 
-def cama_status_post(p_year=0):
-    global YEAR
-
-    if p_year == 0:
-        p_year = YEAR
-
-    if p_year < 1915 or p_year > 2011:
-        return "Invalid CAMA year: " + str(p_year)
-    p_year = str(p_year)  # get ready for concat ops
-
-    base_path = "/var/lib/model/CaMa_Post/out/hamid/"
-
-    log_path = base_path + "log.txt"
-    log = open(log_path).readlines()[-1]
-    if "end:" not in log:
-        return "outflw" + str(p_year) + " still executing."
-
-    out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
-    if os.path.isfile(out_path):
-        millistamp = os.path.getmtime(out_path)
-        return str(datetime.datetime.fromtimestamp(millistamp).replace(microsecond=0))
-    else:
-        return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
-
-
-def get_flow(p_year, model):
+def get_flow(p_year, folder_name):
     p_year = str(p_year)
     if model == "pre":
         base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
@@ -600,16 +638,15 @@ def get_flow(p_year, model):
         return "output_flow doesn't exist for the year " + p_year
 
 
-def do_request(p_request_json):
+def do_request(p_request_json, mongo_client):
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
             p_request_json["request"] == "update_manning" or \
-            p_request_json["request"] == "cama_status_pre" or \
-            p_request_json["request"] == "cama_status_post" or \
+            p_request_json["request"] == "cama_status" or \
             p_request_json["request"] == "cama_set" or \
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
-            p_request_json["request"] == "cama_run_pre" or \
+            p_request_json["request"] == "cama_run" or \
             p_request_json['request'] == "cama_run_post" or \
             p_request_json["request"] == "get_flow" or \
             p_request_json["request"] == "update_wetland":
@@ -619,7 +656,7 @@ def do_request(p_request_json):
         if check_inputs:
             mandatory_keys = ["request", "pre_path", "post_path", "year", "lat", "lon"]
             numeric_keys = ["lat", "lon", "year"]
-            file_keys = ["pre_path", "post_path"]
+            # file_keys = ["pre_path", "post_path"]
             given_keys = p_request_json.keys()
             for this_key in mandatory_keys:
                 if this_key not in given_keys:
@@ -631,10 +668,10 @@ def do_request(p_request_json):
                     print("Expected number, received: " + this_key + "=" + p_request_json[this_key])
                     return
 
-            for this_key in file_keys:
-                if not os.path.exists(p_request_json[this_key]):
-                    print("Could not find '" + this_key + "' at " + p_request_json[this_key])
-                    return
+            # for this_key in file_keys:
+            #     if not os.path.exists(p_request_json[this_key]):
+            #         print("Could not find '" + this_key + "' at " + p_request_json[this_key])
+            #         return
 
             # startup and configuration
             config = dict()
@@ -643,16 +680,16 @@ def do_request(p_request_json):
             config["year"] = int(p_request_json["year"])
             config["lat"] = float(p_request_json["lat"])
             config["lon"] = float(p_request_json["lon"])
-
             set_configuration(config)
 
         result = None
         if p_request_json["request"] == "plot_hydrograph_from_wetlands":
             result = plot_hydrograph_from_wetlands()
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
-            result = plot_hydrograph_nearest_reservoir()
+            result = plot_hydrograph_nearest_reservoir(mongo_client)
         elif p_request_json["request"] == "peak_flow":
-            result = peak_flow(p_request_json["lat"], p_request_json["lon"], p_request_json["return_period"])
+            result = peak_flow(p_request_json["folder_name"], p_request_json["lat"], p_request_json["lon"],
+                               p_request_json["return_period"])
         elif p_request_json["request"] == "plot_hydrograph_deltas":
             result = delta_max_all()
         elif p_request_json["request"] == "veg_lookup":
@@ -663,25 +700,16 @@ def do_request(p_request_json):
             result = dict()
             result["succeeded"] = False
             try:
-                update_manning(p_request_json["lat"], p_request_json["lon"],
-                               p_request_json["riv_pre"], p_request_json["riv_post"],
-                               p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json['size_wetland'])
+                update_manning(p_request_json["lat"], p_request_json["lon"], p_request_json["riv_pre"],
+                               p_request_json["riv_post"], p_request_json["fld_pre"], p_request_json["fld_post"],
+                               p_request_json['size_wetland'])
                 result["succeeded"] = True
             except Exception as e:
                 print(e)
                 pass
-        elif p_request_json["request"] == "cama_status_pre":
+        elif p_request_json["request"] == "cama_status":
             result = dict()
-            response = cama_status_pre(p_request_json["year"])
-            if response[0] == '2':
-                result["completed"] = True
-                result["timestamp"] = response
-            else:
-                result["completed"] = False
-                result["message"] = response
-        elif p_request_json["request"] == "cama_status_post":
-            result = dict()
-            response = cama_status_post(p_request_json["year"])
+            response = cama_status(p_request_json["model"], p_request_json["year"])
             if response[0] == '2':
                 result["completed"] = True
                 result["timestamp"] = response
@@ -696,14 +724,13 @@ def do_request(p_request_json):
             else:
                 result["succeeded"] = False
                 result["message"] = response
-        elif p_request_json["request"] == "cama_run_pre":
+        elif p_request_json["request"] == "cama_run":
             result = dict()
-            run_cama_pre()
-            result["message"] = "Execution queued"
-        elif p_request_json["request"] == "cama_run_post":
-            result = dict()
-            run_cama_post()
-            result["message"] = "Execution queued"
+            status = run_cama(p_request_json["model"], p_request_json["folder_name"], mongo_client)
+            if status == -1:
+                result["message"] = "There is already a model in execution, pls wait"
+            else:
+                result["message"] = "Execution queued"
         elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
         elif p_request_json["request"] == "update_wetland":
@@ -713,18 +740,27 @@ def do_request(p_request_json):
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
+        # Cleaning up the files folder
+        clean_up()
+
         if result is not None:
             return json.dumps(result)  # this is where the data actually is sent back to the API
     except Exception as e:
         print("An exception occurred:" + str(e))
-        
+
 
 if __name__ == '__main__':
-    # DEBUG INPUT FOR PEAK_FLOW
-    # inp_string = '{"request":"peak_flow","return_period":"10","lat":"30.902","lon":"-96.707"}'
+    db = DBConnect()
+    db.connect_db()
+    mongo_client = db
 
     payload = dict({
-        "request": "update_wetland",
-        "flow_value": 0
+        "request": "peak_flow",
+        "return_period": 10,
+        "lat": 30.902,
+        "lon": -96.707,
+        "folder_name": "output_0"
     })
-    do_request(payload)
+
+    print(do_request(payload, mongo_client))
+    db.disconnect_db()
