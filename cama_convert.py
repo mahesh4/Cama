@@ -442,6 +442,7 @@ def grid_cell_of_reservoir(p_lat=0.0, p_lon=0.0):
     return candidate  # and now we finally have a grid_offset that we can use in our main function
 
 
+# Mahesh: Done
 def plot_hydrograph_nearest_reservoir(p_lat=0.0, p_lon=0.0):
     global LAT, LON, YEAR, PRE_PATH, POST_PATH
 
@@ -572,7 +573,7 @@ def run_cama(p_model, folder_name, mongo_client):
 
 
 def clean_up():
-    # Deleting all content of the output folder
+    """Deleting all content of the output folder"""
     folder = os.path.join(os.getcwd(), "output")
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
@@ -585,39 +586,20 @@ def clean_up():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def cama_status(p_model, p_year=0):
-    global YEAR
-
-    if p_year == 0:
-        p_year = YEAR
-
-    if p_year < 1915 or p_year > 2011:
-        return "Invalid CAMA year: " + str(p_year)
-
-    p_year = str(p_year)  # get ready for concat ops
-
-    if p_model == "preflow":
-        base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
-    elif p_model == "postflow":
-        base_path = "/var/lib/model/CaMa_Post/out/hamid"
-    else:
-        return "invalid model"
-
-    log_path = base_path + "log.txt"
-    log = open(log_path).readlines()[-1]
-
-    if "end:" not in log:
-        return "outflw" + str(p_year) + " still executing."
-
-    out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
-    if os.path.isfile(out_path):
-        millistamp = os.path.getmtime(out_path)
-        return str(datetime.datetime.fromtimestamp(millistamp).replace(microsecond=0))
-    else:
-        return "CAMA (post-restoration) for " + str(p_year) + " has not yet been executed."
+def cama_status(folder_name, mongo_client):
+    try:
+        database = mongo_client["output"]
+        files_collection = database["files"]
+        file = files_collection.find_one({"folder_name": folder_name})
+        if file is None:
+            return "folder_name doesn't exist"
+        else:
+            return file["status"]
+    except Exception as e:
+        raise e
 
 
-def get_flow(p_year, folder_name):
+def get_flow(p_year, model, folder_name, mongo_client):
     p_year = str(p_year)
     if model == "pre":
         base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
@@ -640,6 +622,18 @@ def get_flow(p_year, folder_name):
         return "output_flow doesn't exist for the year " + p_year
 
 
+def delete_results(folder_name, mongo_client):
+    database = mongo_client["output"]
+    files_collection = database["files"]
+    file = files_collection.find_one({"folder_name": folder_name})
+    if file is not None and DropObj.folder_exists(folder_name):
+        DropObj.delete_folder(folder_name)
+        files_collection.delete_one({"_id": file["_id"]})
+        return 1
+    else:
+        return -1
+
+
 def do_request(p_request_json, mongo_client):
     check_inputs = True
     if p_request_json["request"] == "veg_lookup" or \
@@ -657,7 +651,6 @@ def do_request(p_request_json, mongo_client):
         if check_inputs:
             mandatory_keys = ["request", "pre_path", "post_path", "year", "lat", "lon"]
             numeric_keys = ["lat", "lon", "year"]
-            # file_keys = ["pre_path", "post_path"]
             given_keys = p_request_json.keys()
             for this_key in mandatory_keys:
                 if this_key not in given_keys:
@@ -668,11 +661,6 @@ def do_request(p_request_json, mongo_client):
                 if not is_number(p_request_json[this_key]):
                     print("Expected number, received: " + this_key + "=" + p_request_json[this_key])
                     return
-
-            # for this_key in file_keys:
-            #     if not os.path.exists(p_request_json[this_key]):
-            #         print("Could not find '" + this_key + "' at " + p_request_json[this_key])
-            #         return
 
             # startup and configuration
             config = dict()
@@ -687,7 +675,7 @@ def do_request(p_request_json, mongo_client):
         if p_request_json["request"] == "plot_hydrograph_from_wetlands":
             result = plot_hydrograph_from_wetlands()
         elif p_request_json["request"] == "plot_hydrograph_nearest_reservoir":
-            result = plot_hydrograph_nearest_reservoir(mongo_client)
+            result = plot_hydrograph_nearest_reservoir(p_request_json["lat"], p_request_json["lon"])
         elif p_request_json["request"] == "peak_flow":
             result = peak_flow(p_request_json["folder_name"], p_request_json["lat"], p_request_json["lon"],
                                p_request_json["return_period"])
@@ -710,13 +698,8 @@ def do_request(p_request_json, mongo_client):
                 pass
         elif p_request_json["request"] == "cama_status":
             result = dict()
-            response = cama_status(p_request_json["model"], p_request_json["year"])
-            if response[0] == '2':
-                result["completed"] = True
-                result["timestamp"] = response
-            else:
-                result["completed"] = False
-                result["message"] = response
+            response = cama_status(p_request_json["folder_name"], mongo_client)
+            result["message"] = response
         elif p_request_json["request"] == "cama_set":
             result = dict()
             response = config_cama(p_request_json["year"])
@@ -740,6 +723,13 @@ def do_request(p_request_json, mongo_client):
             update_wetland(p_request_json["flow_value"])
             result = dict()
             result["message"] = "Flow updated successfully"
+        elif p_request_json["request"] == "delete_results":
+            status = delete_results(p_request_json["folder_name"], mongo_client)
+            result = dict()
+            if status == -1:
+                result["message"] = "Folder doesn't exist in Dropbox or mongoDB"
+            else:
+                result["message"] = "Delete operation successful"
         else:
             print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
@@ -758,9 +748,13 @@ if __name__ == '__main__':
     mongo_client = db.get_connection()
 
     payload = dict({
-        "request": "cama_run",
-        "folder_name": "output_0",
-        "model": "preflow"
+        "pre_path": "/output_0/outflw1920.bin",
+        "post_path": "/output_postflow_wetland_2/outflw1920.bin",
+        "return_period": 10,
+        "lat": 30.902,
+        "lon": -96.707,
+        "year": 1920,
+        "request": "plot_hydrograph_nearest_reservoir"
     })
 
     print(do_request(payload, mongo_client))
