@@ -643,7 +643,7 @@ def do_request(p_request_json, mongo_client):
             p_request_json["request"] == "peak_flow" or \
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run" or \
-            p_request_json["request"] == "get_flow" or \
+            p_request_json["request"] == "delete_results" or \
             p_request_json["request"] == "update_wetland":
         check_inputs = False
 
@@ -748,13 +748,8 @@ if __name__ == '__main__':
     mongo_client = db.get_connection()
 
     payload = dict({
-        "pre_path": "/output_0/outflw1920.bin",
-        "post_path": "/output_postflow_wetland_2/outflw1920.bin",
-        "return_period": 10,
-        "lat": 30.902,
-        "lon": -96.707,
-        "year": 1920,
-        "request": "plot_hydrograph_deltas"
+        "folder_name": "test_preflow",
+        "request": "delete_results"
     })
 
     print(do_request(payload, mongo_client))

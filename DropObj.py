@@ -58,9 +58,9 @@ def folder_exists(folder_name):
     try:
         metadata = dbx.files_get_metadata("/" + folder_name)
         if isinstance(metadata, dropbox.files.FolderMetadata):
-            return False
-        else:
             return True
+        else:
+            return False
     except Exception as e:
         return False
 
