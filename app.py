@@ -216,7 +216,7 @@ def list_results():
         mongo_client = get_db()
         database = mongo_client["output"]
         files_collection = database["files"]
-        response = list(files_collection.find({}))
+        response = list(files_collection.find({}, {"_id": 0}))
         return json.dumps(response)
     except Exception as e:
         abort(500, e)
