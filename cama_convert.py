@@ -748,10 +748,8 @@ if __name__ == '__main__':
     mongo_client = db.get_connection()
 
     payload = dict({
-        "folder_name": "output_0",
-        "metadata": {},
-        "request": "cama_run",
-        "model": "preflow"
+        "flow_value": 0,
+        "request": "update_groundwater"
     })
 
     print(do_request(payload, mongo_client))
