@@ -186,7 +186,7 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         fp.close()
 
 
-def update_wetland(flow_value):
+def update_groundwater(flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
     wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
 
@@ -644,7 +644,7 @@ def do_request(p_request_json, mongo_client):
             p_request_json["request"] == "coord_to_grid" or \
             p_request_json["request"] == "cama_run" or \
             p_request_json["request"] == "delete_results" or \
-            p_request_json["request"] == "update_wetland":
+            p_request_json["request"] == "update_groundwater":
         check_inputs = False
 
     try:
@@ -719,8 +719,8 @@ def do_request(p_request_json, mongo_client):
                 result["message"] = "Execution queued"
         elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
-        elif p_request_json["request"] == "update_wetland":
-            update_wetland(p_request_json["flow_value"])
+        elif p_request_json["request"] == "update_groundwater":
+            update_groundwater(p_request_json["flow_value"])
             result = dict()
             result["message"] = "Flow updated successfully"
         elif p_request_json["request"] == "delete_results":
@@ -748,8 +748,10 @@ if __name__ == '__main__':
     mongo_client = db.get_connection()
 
     payload = dict({
-        "folder_name": "test_preflow",
-        "request": "delete_results"
+        "folder_name": "output_0",
+        "metadata": {},
+        "request": "cama_run",
+        "model": "preflow"
     })
 
     print(do_request(payload, mongo_client))
