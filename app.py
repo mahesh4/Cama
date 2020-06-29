@@ -25,6 +25,7 @@ def close_db(error):
         db.disconnect_db()
 
 
+# Mahesh: Done
 @app.route('/')
 def index():
     response = {
@@ -50,6 +51,7 @@ def to_arcgis():
     return response
 
 
+# Mahesh: Done
 @app.route('/wetland_flow', methods=['POST'])
 def wetland_flow():
     request_data = request.get_json()
@@ -63,9 +65,9 @@ def wetland_flow():
         abort(500, e)
 
 
+# Mahesh: Done
 @app.route("/reservoir_flow", methods=["POST"])
 def reservoir_flow():
-    # completed
     request_data = request.get_json()
     request_data["request"] = "plot_hydrograph_nearest_reservoir"
     mongo_client = get_db()
@@ -77,6 +79,7 @@ def reservoir_flow():
         abort(500, e)
 
 
+# Mahesh: Doubt regarding output
 @app.route('/comparative_flow', methods=['POST'])
 def comparative_flow():
     request_data = request.get_json()
@@ -90,6 +93,7 @@ def comparative_flow():
         abort(500, e)
 
 
+# Mahesh: Done
 @app.route('/vegetation_lookup', methods=['POST'])
 def vegetation_lookup():
     request_data = request.get_json()
@@ -116,6 +120,7 @@ def update_manning():
         abort(500, e)
 
 
+# Mahesh: Need to check
 @app.route("/cama_status", methods=["POST"])
 def cama_status():
     request_data = request.get_json()
@@ -153,6 +158,7 @@ def came_run():
         abort(500, e)
 
 
+# Mahesh: Done
 @app.route('/coord_to_grid', methods=['POST'])
 def coor_to_grid():
     request_data = request.get_json()
@@ -205,9 +211,20 @@ def update_flow():
 def delete_results():
     request_data = request.get_json()
     request_data["request"] = "delete_results"
-    mongo_client = get_db()
     try:
+        mongo_client = get_db()
         response = cama_convert.do_request(request_data, mongo_client)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route("/list_results", methods=["GET"])
+def list_results():
+    try:
+        mongo_client = get_db()
+        files_collection = mongo_client["files"]
+        response = list(files_collection.find({}))
         return response
     except Exception as e:
         abort(500, e)
