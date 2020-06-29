@@ -189,7 +189,7 @@ def get_flow():
 @app.route('/update_groundwater', methods=['POST'])
 def update_groundwater():
     request_data = request.get_json()
-    request_data['request'] = 'update_wetland'
+    request_data['request'] = 'update_groundwater'
     try:
         mongo_client = get_db()
         response = cama_convert.do_request(request_data, mongo_client)
