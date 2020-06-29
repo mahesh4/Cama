@@ -196,7 +196,7 @@ def get_flow():
         abort(500, e)
 
 
-@app.route('/update_wetland', methods=['POST'])
+@app.route('/update_groundwater', methods=['POST'])
 def update_flow():
     request_data = request.get_json()
     request_data['request'] = 'update_wetland'
@@ -219,7 +219,7 @@ def delete_results():
         abort(500, e)
 
 
-@app.route("/list_results", methods=["GET"])
+@app.route("/get_results", methods=["GET"])
 def list_results():
     try:
         mongo_client = get_db()
