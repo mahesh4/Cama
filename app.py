@@ -1,5 +1,6 @@
 from flask import Flask, request, abort
 from arcgis2geojson import arcgis2geojson
+import json
 import cama_convert
 from db_connect import DBConnect
 from flask import g
@@ -216,7 +217,7 @@ def list_results():
         database = mongo_client["output"]
         files_collection = database["files"]
         response = list(files_collection.find({}))
-        return response
+        return json.dumps(response)
     except Exception as e:
         abort(500, e)
 
