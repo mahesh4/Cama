@@ -157,7 +157,6 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
     # 8) update the fldhgt.bin
     file = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
-    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/lonlat"  # for testing in local machine
     lon_lat_1 = numpy.loadtxt(file, usecols=range(2))
     lon_lat = lon_lat_1
 
@@ -165,8 +164,6 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         lon_lat = numpy.vstack([lon_lat_1, lon_lat])
 
     file = open("/var/lib/model/CaMa_Pre/map/hamid/fldhgt_original.bin", "r")
-    # file = open("/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/fldhgt_original.bin", "r")  # for testing in
-    # local machine
     fldhgt_original = numpy.fromfile(file, dtype=numpy.float32)
     file.close()
 
@@ -175,7 +172,6 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
     lon_lat_4 = lon_lat
 
     file = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
-    # file = "/Users/magesh/Documents/Cama/CaMa_Brazos/map/hamid/wetland_loc_multiple"  # for testing in local machine
     lon_lat_5 = numpy.loadtxt(file, usecols=range(2))
 
     for k in range(3, 4):
@@ -209,7 +205,7 @@ def update_groundwater(flow_value):
     lon_lat = numpy.loadtxt(file_path)
 
     # Finding nearest lon_lat to the wetland location
-    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[0], location[1]) for location
+    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[1], location[0]) for location
                 in lon_lat]
     min_lonlat_index = distance.index(min(distance))
 
