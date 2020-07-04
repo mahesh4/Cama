@@ -21,22 +21,38 @@ LAT_MAT = [0]
 LON_MAT = [0]
 
 
-# Mahesh: Done
 def pos2dis(lat1, lon1, lat2, lon2):
     # approximate radius of earth in km
-    R = 6373.0
+    if abs(lat1) > 90 or abs(lat2) > 90 or abs(lon1) > 360 or abs(lon2) > 360:
+        raise Exception("Wrong arguments passed")
 
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
+    if lon1 < 0:
+        lon1 = lon1 + 360
+    if lon2 < 0:
+        lon2 = lon2 + 360
 
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    distance = R * c
+    R_average = 6374
+    deg2rad = math.pi / 180
+    lat1 = lat1 * deg2rad
+    lon1 = lon1 * deg2rad
+    lat2 = lat2 * deg2rad
+    lon2 = lon2 * deg2rad
+    distance = R_average * math.acos(math.cos(lat1) * math.cos(lat2) * math.cos(lon1 - lon2) + math.sin(lat1) * math.sin(lat2))
     return distance
 
+    # Mahesh Code
+    # R = 6373.0
+    #
+    # dlon = lon2 - lon1
+    # dlat = lat2 - lat1
+    #
+    # a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    # c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    #
+    # distance = R * c
+    # return distance
 
-# Mahesh: Done
+
 def is_number(in_string):
     try:
         float(in_string)
@@ -45,7 +61,6 @@ def is_number(in_string):
         return False
 
 
-# Mahesh: Done
 def set_configuration(new_config):
     global YEAR, PRE_PATH, POST_PATH, LAT, LON
 
