@@ -197,27 +197,28 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
         fp.close()
 
 
-def update_groundwater(flow_value):
-    file_path = "/var/lib/model/CaMa_Pre/map/hamid/wetland_loc_multiple"
-    wetland_loc_multiple = numpy.loadtxt(file_path, usecols=range(2))
-
+def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
     file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
     lon_lat = numpy.loadtxt(file_path)
-
+    min_lonlat_index_list = []
     # Finding nearest lon_lat to the wetland location
-    distance = [pos2dis(wetland_loc_multiple[0][0], wetland_loc_multiple[0][1], location[1], location[0]) for location
-                in lon_lat]
-    min_lonlat_index = distance.index(min(distance))
+    for wetland_loc in wetland_loc_multiple:
+        distance = [pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
+        min_lonlat_index_list.append(distance.index(min(distance)))
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
         file_no = int(filename.split('/')[-1].split('.')[0][7:])
-        if file_no <= 20111001:
+        year = file_no[:4]
+        month = file_no[4:6]
+        day = file_no[6:]
+        if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
             with open(filename, 'r') as f:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
-            flood_input[min_lonlat_index] += flow_value
+            for min_lonlat_index in min_lonlat_index_list:
+                flood_input[min_lonlat_index] += flow_value*0.01
 
             with open(filename, 'w') as f:
                 flood_input.tofile(f)
