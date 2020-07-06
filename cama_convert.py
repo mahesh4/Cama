@@ -732,7 +732,8 @@ def do_request(p_request_json, mongo_client):
         elif p_request_json["request"] == "get_flow":
             result = get_flow(p_request_json['year'], p_request_json['model_type'])
         elif p_request_json["request"] == "update_groundwater":
-            update_groundwater(p_request_json["flow_value"])
+            update_groundwater(p_request_json["day1"], p_request_json["month1"], p_request_json["year1"], p_request_json["day2"],
+                               p_request_json["month2"], p_request_json["year2"], p_request_json["wetland_loc_multiple"], p_request_json["flow_value"])
             result = dict()
             result["message"] = "Flow updated successfully"
         elif p_request_json["request"] == "delete_results":
