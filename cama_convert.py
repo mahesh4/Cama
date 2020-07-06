@@ -208,7 +208,7 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
-        file_no = int(filename.split('/')[-1].split('.')[0][7:])
+        file_no = filename.split('/')[-1].split('.')[0][7:]
         year = int("".join(file_no[:4]))
         month = int("".join(file_no[4:6]))
         day = int("".join(file_no[6:]))
@@ -761,8 +761,16 @@ if __name__ == '__main__':
     db.connect_db()
     mongo_client = db.get_connection()
 
+    # For DEBUG
     payload = dict({
         "flow_value": 0,
+        "year1": 2006,
+        "month1": 5,
+        "day1": 10,
+        "year2": 2006,
+        "month2": 5,
+        "day2": 15,
+        "wetland_loc_multiple": [[32.164, -97.472]],
         "request": "update_groundwater"
     })
 
