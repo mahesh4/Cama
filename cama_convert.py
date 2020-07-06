@@ -209,9 +209,9 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
         file_no = int(filename.split('/')[-1].split('.')[0][7:])
-        year = int(file_no[:4])
-        month = int(file_no[4:6])
-        day = int(file_no[6:])
+        year = int("".join(file_no[:4]))
+        month = int("".join(file_no[4:6]))
+        day = int("".join(file_no[6:]))
         if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
             print("updated ", file_no)
             with open(filename, 'r') as f:
