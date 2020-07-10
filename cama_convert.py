@@ -184,13 +184,22 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
 
 def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
-    file_path = "/var/lib/model/CaMa_Pre/map/hamid/lonlat"
+    file_path = os.path.join(os.getcwd(), "lonlat_vic_op_cmf_ip")
     lon_lat = numpy.loadtxt(file_path)
+    file_path = os.path.join("/var/lib/model/CaMa_Post/map/hamid/lonlat")
+    lonlat = numpy.loadtxt(file_path)
+
     min_lonlat_index_list = []
     # Finding nearest lon_lat to the wetland location
     for wetland_loc in wetland_loc_multiple:
         distance = [pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
-        min_lonlat_index_list.append(distance.index(min(distance)))
+        nearest_lon_lat_index = distance.index(min(distance))
+        lon, lat = lon_lat[nearest_lon_lat_index]
+        for i in range(len(lonlat)):
+            a, b = lonlat[i]
+            if a == lon and b == lat:
+                min_lonlat_index_list.append(i)
+                break
 
     input_path = "/var/lib/model/CaMa_Post/inp/hamid"
     for filename in glob.glob(os.path.join(input_path, '*.bin')):
@@ -198,8 +207,6 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
         year = int("".join(file_no[:4]))
         month = int("".join(file_no[4:6]))
         day = int("".join(file_no[6:]))
-        # start = (month1, day1)
-        # end = (month2, day2)
         if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
             print("updated ", file_no)
             with open(filename, 'r') as f:
@@ -208,10 +215,9 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
 
             for min_lonlat_index in min_lonlat_index_list:
                 print("before ", flood_input[min_lonlat_index])
+                print(lon_lat[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow_value*0.01
                 print("after ", flood_input[min_lonlat_index])
-
-
 
             with open(filename, 'w') as f:
                 flood_input.tofile(f)
@@ -754,7 +760,7 @@ if __name__ == '__main__':
 
     # For DEBUG
     payload = dict({
-        "flow_value": 0,
+        "flow_value": -10000,
         "year1": 2006,
         "month1": 5,
         "day1": 10,
