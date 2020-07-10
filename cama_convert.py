@@ -224,6 +224,14 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
                 flood_input.tofile(f)
                 f.close()
 
+            with open(filename, 'r') as f:
+                flood_input = numpy.fromfile(f, dtype=numpy.float32)
+                print("after write", flood_input)
+                f.close()
+
+            for min_lonlat_index in min_lonlat_index_list:
+                print("after write", flood_input[min_lonlat_index])
+
 
 def delta_max_q_y(p_cell=0):
     global YEAR, PRE_PATH, POST_PATH, LAT, LON
