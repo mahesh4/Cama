@@ -40,18 +40,6 @@ def pos2dis(lat1, lon1, lat2, lon2):
     distance = R_average * math.acos(math.cos(lat1) * math.cos(lat2) * math.cos(lon1 - lon2) + math.sin(lat1) * math.sin(lat2))
     return distance
 
-    # Mahesh Code
-    # R = 6373.0
-    #
-    # dlon = lon2 - lon1
-    # dlat = lat2 - lat1
-    #
-    # a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    # c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    #
-    # distance = R * c
-    # return distance
-
 
 def is_number(in_string):
     try:
@@ -84,13 +72,11 @@ def set_configuration(new_config):
         LON = new_config["lon"]
 
 
-# Mahesh: Done
 def init_matrix(rows, cols, init_val):
     # noinspection PyUnusedLocal
     return [[init_val for i in range(cols)] for j in range(rows)]
 
 
-# Mahesh: Done
 def days_in_year(year):
     if calendar.isleap(year):
         return 366
@@ -212,14 +198,19 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
         year = int("".join(file_no[:4]))
         month = int("".join(file_no[4:6]))
         day = int("".join(file_no[6:]))
-        if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
+        start = (month1, day1)
+        end = (month2, day2)
+        date = (month, day)
+        if start <= date <= end:
             print("updated ", file_no)
             with open(filename, 'r') as f:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
             for min_lonlat_index in min_lonlat_index_list:
+                print("before ", flood_input[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow_value*0.01
+                print("after ", flood_input[min_lonlat_index])
 
             with open(filename, 'w') as f:
                 flood_input.tofile(f)
@@ -323,7 +314,6 @@ def plot_hydrograph_from_wetlands():
     return line1, line2
 
 
-# Mahesh: Done
 def map_input_to_flow(file_path, grid_cell, p_year=0, p_clean=False):
     global YEAR
 
