@@ -769,7 +769,7 @@ if __name__ == '__main__':
 
     # For DEBUG
     payload = dict({
-        "flow_value": -10000,
+        "flow_value": 10000,
         "year1": 2006,
         "month1": 5,
         "day1": 10,
