@@ -198,10 +198,9 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
         year = int("".join(file_no[:4]))
         month = int("".join(file_no[4:6]))
         day = int("".join(file_no[6:]))
-        start = (month1, day1)
-        end = (month2, day2)
-        date = (month, day)
-        if start <= date <= end:
+        # start = (month1, day1)
+        # end = (month2, day2)
+        if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
             print("updated ", file_no)
             with open(filename, 'r') as f:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
@@ -211,6 +210,8 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
                 print("before ", flood_input[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow_value*0.01
                 print("after ", flood_input[min_lonlat_index])
+
+
 
             with open(filename, 'w') as f:
                 flood_input.tofile(f)
