@@ -186,8 +186,8 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
     file_path = os.path.join(os.getcwd(), "lonlat_vic_op_cmf_ip")
     lon_lat = numpy.loadtxt(file_path)
-    file_path = os.path.join("/var/lib/model/CaMa_Post/map/hamid/lonlat")
-    lonlat = numpy.loadtxt(file_path)
+    # file_path = os.path.join("/var/lib/model/CaMa_Post/map/hamid/lonlat")
+    # lonlat = numpy.loadtxt(file_path)
 
     min_lonlat_index_list = []
     # Finding nearest lon_lat to the wetland location
@@ -195,9 +195,9 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
         distance = [pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
         nearest_lon_lat_index = distance.index(min(distance))
         lon, lat = lon_lat[nearest_lon_lat_index]
-        print(lon, lat)
-        for i in range(len(lonlat)):
-            a, b = lonlat[i]
+
+        for i in range(len(lon_lat)):
+            a, b = lon_lat[i]
             if a == lon and b == lat:
                 min_lonlat_index_list.append(i)
                 break
