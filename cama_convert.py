@@ -195,6 +195,7 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
         distance = [pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
         nearest_lon_lat_index = distance.index(min(distance))
         lon, lat = lon_lat[nearest_lon_lat_index]
+        print(lon, lat)
         for i in range(len(lonlat)):
             a, b = lonlat[i]
             if a == lon and b == lat:
@@ -213,9 +214,9 @@ def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_mul
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
+            print(min_lonlat_index_list)
             for min_lonlat_index in min_lonlat_index_list:
                 print("before ", flood_input[min_lonlat_index])
-                print(lon_lat[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow_value*0.01
                 print("after ", flood_input[min_lonlat_index])
 
