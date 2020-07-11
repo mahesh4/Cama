@@ -9,6 +9,15 @@ from db_connect import DBConnect
 ACCESS_TOKEN = "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
 
 
+def create_folder(folder_name):
+    try:
+        dbx = dropbox.Dropbox(ACCESS_TOKEN)
+        # Inserting the folder into Dropbox
+        dbx.files_create_folder_v2(folder_name, autorename=False)
+    except Exception as e:
+        raise e
+
+
 def upload_output(model):
     db = DBConnect()
     dbx = dropbox.Dropbox(ACCESS_TOKEN)
@@ -29,7 +38,7 @@ def upload_output(model):
             output_path = "/var/lib/model/CaMa_Post/out/hamid"
 
         # Inserting the folder into dropbox
-        dbx.files_create_folder_v2(folder_name, autorename=False)
+        # dbx.files_create_folder_v2(folder_name, autorename=False)
 
         # Uploading the results
         for filename in glob.glob(os.path.join(output_path, '*.bin')):
@@ -89,4 +98,4 @@ if __name__ == "__main__":
     else:
         print("invalid arguments passed")
     # download_file("output_test", "outflw1922.bin")
-    # delete_folder("output_test")
+    # delete_folder("test_postflow_2")

@@ -1,8 +1,9 @@
 import calendar
-import datetime
+from datetime import date
 import json
 import math
-import os.path, shutil
+import os.path
+import shutil
 import subprocess
 import DropObj
 import glob
@@ -83,7 +84,6 @@ def days_in_year(year):
     return 365
 
 
-# Mahesh: Done
 def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
     global LAT, LON
 
@@ -97,7 +97,6 @@ def coord_to_grid_cell(p_lat=0.0, p_lon=0.0):
     return math.floor((lat_baseline - p_lat) * 10) * 90 + math.floor(((lon_baseline + p_lon) * 10) + 1)
 
 
-# Mahesh: Done
 def veg_to_manning(veg_type=""):
     veg_type = veg_type.lower()
     if veg_type == "crop" or veg_type == "crops":
@@ -114,7 +113,6 @@ def veg_to_manning(veg_type=""):
 
 def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, size_wetland):
     # this function updates the manning parameters of the post-restoration model
-    # you will need to call the model and scrape the results yourself manually
 
     cell = coord_to_grid_cell(p_lat, p_lon) - 1  # must offset by 1; this is very sensitive in the raw binary
 
@@ -184,53 +182,39 @@ def update_manning(p_lat, p_lon, p_riv_base, p_riv_new, p_fld_base, p_fld_new, s
 
 
 def update_groundwater(day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
-    file_path = os.path.join(os.getcwd(), "lonlat_vic_op_cmf_ip")
+    file_path = "/var/lib/model/cama/map/hamid/lonlat_vic_op_cmf_ip"
     lon_lat = numpy.loadtxt(file_path)
-    # file_path = os.path.join("/var/lib/model/CaMa_Post/map/hamid/lonlat")
-    # lonlat = numpy.loadtxt(file_path)
-
+    file_path = "/var/lib/model/cama/inp/hamid_dates_1915_2011"
+    dates = numpy.loadtxt(file_path)
     min_lonlat_index_list = []
     # Finding nearest lon_lat to the wetland location
     for wetland_loc in wetland_loc_multiple:
         distance = [pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
         nearest_lon_lat_index = distance.index(min(distance))
-        lon, lat = lon_lat[nearest_lon_lat_index]
+        min_lonlat_index_list.append(nearest_lon_lat_index)
 
-        for i in range(len(lon_lat)):
-            a, b = lon_lat[i]
-            if a == lon and b == lat:
-                min_lonlat_index_list.append(i)
-                break
+    base_path = "/var/lib/model/CaMa_Post/inp/hamid"
+    dates_start_idx = dates[(dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1)]
+    dates_end_idx = dates[(dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2)]
+    dates_in_range = dates[dates_start_idx[0][0]: dates_end_idx[0][0] + 1]
+    flow = flow_value / len(dates_in_range)
+    print(min_lonlat_index_list)
+    print(flow_value, len(dates_in_range), flow)
+    for cur_date in dates_in_range:
+        file_name = "Roff__" + "".join(map(lambda x: str(x).zfill(2), cur_date)) + ".bin"
+        file_path = os.path.join(base_path, file_name)
+        with open(file_path, 'r') as f:
+            flood_input = numpy.fromfile(f, dtype=numpy.float32)
+            f.close()
 
-    input_path = "/var/lib/model/CaMa_Post/inp/hamid"
-    for filename in glob.glob(os.path.join(input_path, '*.bin')):
-        file_no = filename.split('/')[-1].split('.')[0][7:]
-        year = int("".join(file_no[:4]))
-        month = int("".join(file_no[4:6]))
-        day = int("".join(file_no[6:]))
-        if year1 <= year <= year2 and month1 <= month <= month2 and day1 <= day <= day2:
-            print("updated ", file_no)
-            with open(filename, 'r') as f:
-                flood_input = numpy.fromfile(f, dtype=numpy.float32)
-                f.close()
+        for min_lonlat_index in min_lonlat_index_list:
+            print("before ", flood_input[min_lonlat_index])
+            flood_input[min_lonlat_index] += flow * 0.0256
+            print("after ", flood_input[min_lonlat_index])
 
-            print(min_lonlat_index_list)
-            for min_lonlat_index in min_lonlat_index_list:
-                print("before ", flood_input[min_lonlat_index])
-                flood_input[min_lonlat_index] += flow_value*0.01
-                print("after ", flood_input[min_lonlat_index])
-
-            with open(filename, 'w') as f:
-                flood_input.tofile(f)
-                f.close()
-
-            with open(filename, 'r') as f:
-                flood_input = numpy.fromfile(f, dtype=numpy.float32)
-                print("after write", flood_input)
-                f.close()
-
-            for min_lonlat_index in min_lonlat_index_list:
-                print("after write", flood_input[min_lonlat_index])
+        with open(file_path, 'w') as f:
+            flood_input.tofile(f)
+            f.close()
 
 
 def delta_max_q_y(p_cell=0):
@@ -565,7 +549,7 @@ def run_cama(p_model, folder_name, metadata, mongo_client):
         database = mongo_client["output"]
         files_collection = database["files"]
         # Check if there is no existing model running
-        file = list(files_collection.find({"status": "running", "model": p_model}))
+        file = list(files_collection.find({"status": "running"}))
         if len(file) > 0:
             return -1
 
@@ -574,20 +558,19 @@ def run_cama(p_model, folder_name, metadata, mongo_client):
         if file is None and not DropObj.folder_exists(folder_name):
             new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name, "metadata": metadata})
             files_collection.insert_one(new_file)
-
+            # Creating the folder in Dropbox
+            DropObj.create_folder(folder_name)
             # Starting the execution of the model
             if p_model == "preflow":
-                subprocess.Popen("sudo /var/lib/model/CaMa_Pre/gosh/hamid.sh", shell=True)
+                subprocess.Popen("sudo /var/lib/model/cama/gosh/hamid_pre.sh", shell=True)
             elif p_model == "postflow_wetland" or p_model == "postflow_groundwater":
-                subprocess.Popen("sudo /var/lib/model/CaMa_Post/gosh/hamid.sh", shell=True)
+                subprocess.Popen("sudo /var/lib/model/cama/gosh/hamid_post.sh", shell=True)
             else:
                 raise Exception("Invalid model")
         else:
             return -2
-
     except Exception as e:
         raise e
-
     return 1
 
 
