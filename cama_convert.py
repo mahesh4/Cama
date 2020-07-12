@@ -4,7 +4,6 @@ import math
 import os.path
 import shutil
 import subprocess
-import dropbox_connect
 import numpy
 # Custom import
 from dropbox_connect import DropBox
@@ -17,7 +16,7 @@ class CamaConvert:
             config = json.load(f)
             f.close()
         self.BASE_PATH = config["CAMA_BASE_PATH"]
-        self.DROPBOX = dropbox_connect()
+        self.DROPBOX = DropBox()
         self.MONGO_CLIENT = mongo_client
         self.YEAR = None  # the year to evaluate
         self.PRE_PATH = ""  # file path to the pre-restoration modelling results
@@ -564,12 +563,12 @@ class CamaConvert:
             return "output_flow doesn't exist for the year " + p_year
 
     def remove_output_folder(self, folder_name):
-        files_collection = self.MONGO_CLIENT["output"]["files"]
-        file = files_collection.find_one({"folder_name": folder_name})
-        if file is None and not self.DROPBOX.folder_exists(folder_name):
+        folder_collection = self.MONGO_CLIENT["output"]["folder"]
+        folder = folder_collection.find_one({"folder_name": folder_name})
+        if folder is None and not self.DROPBOX.folder_exists(folder_name):
             raise Exception("unable to delete the folder")
-        if file is not None:
-            files_collection.delete_one({"_id": file["_id"]})
+        if folder is not None:
+            folder_collection.delete_one({"_id": folder["_id"]})
         if self.DROPBOX.folder_exists(folder_name):
             self.DROPBOX.delete_folder(folder_name)
         return "Deletion Successful"
@@ -632,7 +631,7 @@ class CamaConvert:
             else:
                 print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
-            # Cleaning up the files folder
+            # Deleting the temp folder
             self.clean_up()
 
             if result is not None:

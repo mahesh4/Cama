@@ -98,7 +98,7 @@ def reservoir_flow():
         abort(500, e)
 
 
-@app.route('/comparative_flow', methods=['POST'])
+@app.route("/comparative_flow", methods=["POST"])
 def comparative_flow():
     try:
         request_data = request.get_json()
@@ -309,12 +309,12 @@ def remove_output_folder():
 
 
 @app.route("/output_folders", methods=["GET"])
-def list_results():
+def get_output_folders():
     try:
         mongo_client = get_db()
         database = mongo_client["output"]
-        files_collection = database["files"]
-        response = list(files_collection.find({}, {"_id": 0}))
+        folder_collection = database["folder"]
+        response = list(folder_collection.find({}, {"_id": 0}))
         return json.dumps(response)
     except Exception as e:
         abort(500, e)
