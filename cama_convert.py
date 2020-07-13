@@ -464,12 +464,12 @@ class CamaConvert:
 
         # for each year in the range
         year_peaks = [0] * 97
-        for i in range(1915, 2012):
+        for i in range(1916, 2012):
             # Downloading the file from dropbox
             self.DROPBOX.download_file(folder_name, "outflw" + str(i) + ".bin")
             output_file = os.path.join(os.getcwd(), "temp", folder_name, "outflw" + str(i) + ".bin")
             year_flow = self.map_input_to_flow(output_file, grid_cell, i, False)
-            year_peaks[i - 1915] = max(year_flow)
+            year_peaks[i - 1916] = max(year_flow)
 
         # calculate the gumbel distribution
         flow_mean = numpy.nanmean(year_peaks)
