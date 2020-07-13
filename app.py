@@ -328,5 +328,29 @@ def get_output_folders():
         abort(500, e)
 
 
+@app.route("/compare_flow", methoods=["POST"])
+def compare_flow():
+    try:
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["lat", "lon", "pre_path", "post_path", "year"]
+        numeric_keys = ["lat", "lon", "year"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "plot_compare_flow"
+        response = cama.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')  # run app in debug mode on port 80

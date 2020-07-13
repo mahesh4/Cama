@@ -206,6 +206,7 @@ class CamaConvert:
                 flood_input.tofile(f)
                 f.close()
 
+            print("flow updated for ", file_name)
         self.config_cama(year1, year2)
 
     def delta_max_q_y(self, p_cell=0):
@@ -570,10 +571,70 @@ class CamaConvert:
             self.DROPBOX.delete_folder(folder_name)
         return "Deletion Successful"
 
+    def compare_flow(self):
+        file_path = os.path.join(self.BASE_PATH, "map", "hamid", "lonlat")
+        lon_lat = numpy.loadtxt(file_path)
+        no_of_lon_lat = lon_lat.shape[0]
+        print(self.YEAR)
+        no_of_days = self.days_in_year(self.YEAR)
+        # Finding nearest lon_lat to the wetland location
+        distance = [self.pos2dis(self.LAT, self.LON, location[1], location[0]) for location in lon_lat]
+        grid_cell = distance.index(min(distance))
+
+        # plotting preflow
+        preflow = []
+        with open(self.PRE_PATH, "r") as f:
+            outflow = numpy.fromfile(f, dtype=numpy.float32)
+            f.close()
+
+        # ensure that all overly-large values are zeroed out
+        for i in range(len(outflow)):
+            if outflow[i] > 100000:
+                outflow[i] = 0
+
+        for i in range(0, no_of_lon_lat):
+            idx = i
+            flow = []
+            for day in range(1, no_of_days + 1):
+                flow.append(outflow[idx])
+                idx += no_of_lon_lat
+            preflow.append(flow)
+
+        preflow = numpy.asarray(preflow)
+        # numpy.savetxt("preflow_outflow.csv", preflow, delimiter=",")
+
+        # plotting the postflow
+        postflow = []
+        with open(self.POST_PATH, "r") as f:
+            outflow = numpy.fromfile(f, dtype=numpy.float32)
+            f.close()
+
+        # ensure that all overly-large values are zeroed out
+        for i in range(len(outflow)):
+            if outflow[i] > 100000:
+                outflow[i] = 0
+
+        for i in range(0, no_of_lon_lat):
+            idx = i
+            flow = []
+            for day in range(1, no_of_days + 1):
+                flow.append(outflow[idx])
+                idx += no_of_lon_lat
+            postflow.append(flow)
+
+        postflow = numpy.asarray(postflow)
+        # numpy.savetxt("postflow_gw_outflow.csv", postflow, delimiter=",")
+
+        file_path = os.path.join(self.BASE_PATH, "inp", "hamid_dates_1915_2011")
+        dates = numpy.loadtxt(file_path, dtype=numpy.int32)
+        dates_in_range = dates[dates[:, 0] == self.YEAR]
+        data = numpy.column_stack([dates_in_range, preflow[grid_cell] * 35.31, postflow[grid_cell] * 35.31])
+        return data.tolist()
+
     def do_request(self, p_request_json):
         try:
             if p_request_json["request"] == "plot_hydrograph_from_wetlands" or p_request_json["request"] == "plot_hydrograph_nearest_reservoir" or \
-                    p_request_json["request"] == "plot_hydrograph_deltas":
+                    p_request_json["request"] == "plot_hydrograph_deltas" or p_request_json["request"] == "plot_compare_flow":
                 # startup and configuration
                 config = dict()
                 config["pre_path"] = p_request_json["pre_path"]
@@ -625,6 +686,8 @@ class CamaConvert:
                 result = dict()
                 message = self.remove_output_folder(p_request_json["folder_name"])
                 result["message"] = message
+            elif p_request_json["request"] == "plot_compare_flow":
+                result = self.compare_flow()
             else:
                 print("Invalid API request: " + p_request_json["request"])  # no valid API request
 
