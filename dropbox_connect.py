@@ -20,7 +20,8 @@ class DropBox:
     def create_folder(self, folder_name):
         try:
             # Inserting the folder into Dropbox
-            self.DBX.files_create_folder_v2(folder_name, autorename=False)
+            folder = "/" + folder_name
+            self.DBX.files_create_folder_v2(folder, autorename=False)
         except Exception as e:
             raise e
 
