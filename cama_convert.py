@@ -114,7 +114,7 @@ class CamaConvert:
         cell = self.coord_to_grid_cell(p_lat, p_lon) - 1  # must offset by 1; this is very sensitive in the raw binary
 
         # 1) we pull the number of indices from the river height file
-        file = open("/var/lib/model/CaMa_Post/map/hamid/rivhgt.bin", 'r')
+        file = open("/var/lib/model/CaMa_Post/map/hamid/rivhgt.bin", "r")
         index_count = len(numpy.fromfile(file, dtype=numpy.float32))
         file.close()
 
@@ -172,16 +172,15 @@ class CamaConvert:
             location = numpy.where((lon_lat[:, 0] == lon_lat_3[0, 0]) & (lon_lat[:, 1] == lon_lat_3[0, 1]))
             lon_lat_4[location[0: size_wetland + 1], 2] = lon_lat[location[0: size_wetland + 1], 2] - 1.5
 
-        with open('/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin', 'w') as fp:
-            lon_lat_4[:, 2].astype('float32').tofile(fp)
-            print(lon_lat_4.shape)
+        with open("/var/lib/model/CaMa_Post/map/hamid/fldhgt.bin", "w") as fp:
+            lon_lat_4[:, 2].astype("float32").tofile(fp)
             fp.close()
 
     def update_groundwater(self, day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
         file_path = os.path.join(self.BASE_PATH, "map", "hamid", "lonlat_vic_op_cmf_ip")
         lon_lat = numpy.loadtxt(file_path)
         file_path = os.path.join(self.BASE_PATH, "inp", "hamid_dates_1915_2011")
-        dates = numpy.loadtxt(file_path)
+        dates = numpy.loadtxt(file_path, dtype=numpy.int32)
         min_lonlat_index_list = []
         # Finding nearest lon_lat to the wetland location
         for wetland_loc in wetland_loc_multiple:
@@ -189,25 +188,21 @@ class CamaConvert:
             nearest_lon_lat_index = distance.index(min(distance))
             min_lonlat_index_list.append(nearest_lon_lat_index)
 
-        dates_start_idx = dates[(dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1)]
-        dates_end_idx = dates[(dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2)]
+        dates_start_idx = numpy.where((dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1))
+        dates_end_idx = numpy.where((dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2))
         dates_in_range = dates[dates_start_idx[0][0]: dates_end_idx[0][0] + 1]
         flow = flow_value / len(dates_in_range)
-        print(min_lonlat_index_list)
-        print(flow_value, len(dates_in_range), flow)
         for cur_date in dates_in_range:
-            file_name = "Roff__" + "".join(map(lambda x: str(x).zfill(2), cur_date)) + ".bin"
+            file_name = "Roff___" + "".join(map(lambda x: str(x).zfill(2), cur_date)) + ".bin"
             file_path = os.path.join(self.BASE_PATH, "inp", "hamid", file_name)
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
             for min_lonlat_index in min_lonlat_index_list:
-                print("before ", flood_input[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow * 0.0256
-                print("after ", flood_input[min_lonlat_index])
 
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 flood_input.tofile(f)
                 f.close()
 
@@ -221,8 +216,8 @@ class CamaConvert:
         day_count = self.days_in_year(self.YEAR)
         flow_denom = 90 * 61
 
-        raw_pre_input = numpy.fromfile(open(self.PRE_PATH, 'r'), dtype=numpy.float32)
-        raw_post_input = numpy.fromfile(open(self.POST_PATH, 'r'), dtype=numpy.float32)
+        raw_pre_input = numpy.fromfile(open(self.PRE_PATH, "r"), dtype=numpy.float32)
+        raw_post_input = numpy.fromfile(open(self.POST_PATH, "r"), dtype=numpy.float32)
         pre_restore_flow = [0] * day_count
         post_restore_flow = [0] * day_count
         for day in range(day_count):
@@ -258,7 +253,7 @@ class CamaConvert:
         day_count = self.days_in_year(self.YEAR)
         flow_denom = 90 * 61
         # let's measure the pre-restoration base flow
-        raw_input = numpy.fromfile(open(self.PRE_PATH, 'r'), dtype=numpy.float32)
+        raw_input = numpy.fromfile(open(self.PRE_PATH, "r"), dtype=numpy.float32)
         pre_restore_flow = [0] * day_count
         weekly_flow = [0] * (day_count - 6)
         for day in range(day_count):
@@ -271,7 +266,7 @@ class CamaConvert:
         pre_avg_min = numpy.average(weekly_flow[week_start:week_start + 6])
 
         # now we measure the post-restoration base flow (which we expect to have risen)
-        raw_input = numpy.fromfile(open(self.POST_PATH, 'r'), dtype=numpy.float32)
+        raw_input = numpy.fromfile(open(self.POST_PATH, "r"), dtype=numpy.float32)
         post_restore_flow = [0] * day_count
         weekly_flow = [0] * (day_count - 6)
         for day in range(day_count):
@@ -293,7 +288,7 @@ class CamaConvert:
         return line1, line2
 
     def map_input_to_flow(self, file_path, grid_cell, p_year=0, p_clean=False):
-        raw_input = numpy.fromfile(open(file_path, 'r'), dtype=numpy.float32)
+        raw_input = numpy.fromfile(open(file_path, "r"), dtype=numpy.float32)
         if p_year == 0:
             p_year = self.YEAR
         if p_clean:
@@ -554,7 +549,7 @@ class CamaConvert:
             return "Invalid model-type selected"
 
         if os.path.isfile(out_path):
-            with open(out_path, 'r') as file:
+            with open(out_path, "r") as file:
                 outflow = numpy.fromfile(file, dtype=numpy.float32)
                 file.close()
             return outflow
@@ -602,7 +597,7 @@ class CamaConvert:
             elif p_request_json["request"] == "update_manning":
                 result = dict()
                 self.update_manning(p_request_json["lat"], p_request_json["lon"], p_request_json["riv_pre"], p_request_json["riv_post"],
-                                    p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json['size_wetland'])
+                                    p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json["size_wetland"])
                 result["succeeded"] = True
             elif p_request_json["request"] == "cama_status":
                 result = dict()
