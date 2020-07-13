@@ -116,7 +116,7 @@ def comparative_flow():
                 abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
 
         request_data["request"] = "plot_hydrograph_deltas"
-        response = CamaConvert.do_request(request_data, mongo_client)
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
@@ -125,8 +125,9 @@ def comparative_flow():
 @app.route("/vegetation_lookup", methods=["POST"])
 def vegetation_lookup():
     try:
-        mongo_client = get_db()
         request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
         mandatory_keys = ["veg_type"]
         given_keys = request_data.keys()
         for this_key in mandatory_keys:
@@ -134,7 +135,7 @@ def vegetation_lookup():
                 abort(400, "Missing required input key: " + this_key)
 
         request_data["request"] = "veg_lookup"
-        response = CamaConvert.do_request(request_data, mongo_client)
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
