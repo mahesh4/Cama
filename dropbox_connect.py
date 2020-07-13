@@ -62,8 +62,13 @@ class DropBox:
     def download_file(self, folder_name, file_name):
         try:
             file_path = "/" + folder_name + "/" + file_name
+            temp_dir = os.path.join(os.getcwd(), "temp")
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+
             if not os.path.exists(os.path.join(os.getcwd(), "temp", folder_name)):
                 os.mkdir(os.path.join(os.getcwd(), "temp", folder_name))
+
             self.DBX.files_download_to_file(os.path.join(os.getcwd(), "temp", folder_name, file_name), file_path)
             print("downloaded ", file_name)
         except Exception as e:

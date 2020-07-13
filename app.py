@@ -157,9 +157,16 @@ def update_manning():
 def cama_status():
     try:
         request_data = request.get_json()
-        request_data["request"] = "cama_status"
         mongo_client = get_db()
-        response = CamaConvert.do_request(request_data, mongo_client)
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["folder_name"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        request_data["request"] = "cama_status"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
