@@ -206,6 +206,8 @@ class CamaConvert:
                 flood_input.tofile(f)
                 f.close()
 
+        self.config_cama(year1, year2)
+
     def delta_max_q_y(self, p_cell=0):
         if not str(self.YEAR).isdigit():
             raise ValueError("No configuration available for this conversion; use 'set_configuration'.")

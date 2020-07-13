@@ -8,7 +8,7 @@ from db_connect import DbConnect
 
 class DropBox:
     def __init__(self):
-        file_path = os.path.join(os.getcwd(), "config.json")
+        file_path = os.path.join(os.path.realpath(__file__), "config.json")
         with open(file_path) as f:
             config = json.load(f)
             f.close()
