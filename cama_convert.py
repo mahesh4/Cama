@@ -430,13 +430,13 @@ class CamaConvert:
         if e_year < 1915 or e_year > 2011:
             return "Invalid CAMA year: " + str(s_year) + ", " + str(e_year)
         try:
-            file_path = os.path.join(self.BASE_PATH, "gosh", "cama_template.sh")
+            file_path = os.path.join(self.BASE_PATH, "gosh", "hamid_post_template.sh")
             with open(file_path, "r") as file:
                 cama_config = file.read()
                 file.close()
             cama_config = cama_config.replace("<SYEAR>", str(s_year))
             cama_config = cama_config.replace("<EYEAR>", str(e_year))
-            file_path = os.path.join(self.BASE_PATH, "gosh", "cama_post.sh")
+            file_path = os.path.join(self.BASE_PATH, "gosh", "hamid_post.sh")
             with open(file_path, "w") as file:
                 file.write(cama_config)
                 file.close()
@@ -508,9 +508,9 @@ class CamaConvert:
 
                 # Starting the execution of the model
                 if p_model == "preflow":
-                    subprocess.Popen("sudo /var/lib/model/cama/gosh/hamid_pre.sh", shell=True)
+                    subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_pre.sh", shell=True)
                 elif p_model == "postflow_wetland" or p_model == "postflow_groundwater":
-                    subprocess.Popen("sudo /var/lib/model/cama/gosh/hamid_post.sh", shell=True)
+                    subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
                 else:
                     raise Exception("Invalid model")
             else:
