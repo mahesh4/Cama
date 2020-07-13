@@ -11,7 +11,7 @@ from dropbox_connect import DropBox
 
 class CamaConvert:
     def __init__(self, mongo_client):
-        file_path = os.path.join(os.getcwd(), "config.json")
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
         with open(file_path) as f:
             config = json.load(f)
             f.close()

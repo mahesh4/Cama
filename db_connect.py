@@ -7,7 +7,7 @@ from sshtunnel import SSHTunnelForwarder
 class DbConnect:
 
     def __init__(self):
-        file_path = os.path.join(os.getcwd(), "config.json")
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
         with open(file_path) as f:
             config = json.load(f)
             f.close()
