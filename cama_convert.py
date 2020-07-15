@@ -575,7 +575,6 @@ class CamaConvert:
         file_path = os.path.join(self.BASE_PATH, "map", "hamid", "lonlat")
         lon_lat = numpy.loadtxt(file_path)
         no_of_lon_lat = lon_lat.shape[0]
-        print(self.YEAR)
         no_of_days = self.days_in_year(self.YEAR)
         # Finding nearest lon_lat to the wetland location
         distance = [self.pos2dis(self.LAT, self.LON, location[1], location[0]) for location in lon_lat]
