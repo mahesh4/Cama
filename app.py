@@ -328,7 +328,7 @@ def get_output_folders():
         abort(500, e)
 
 
-@app.route("/compare_flow", methoods=["POST"])
+@app.route("/compare_flow", methods=["POST"])
 def compare_flow():
     try:
         request_data = request.get_json()
