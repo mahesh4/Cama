@@ -173,32 +173,50 @@ def cama_status():
         abort(500, e)
 
 
-@app.route('/cama_set', methods=['POST'])
-def cama_set():
-    # TODO: work in progress
-    request_data = request.get_json()
-    request_data['request'] = 'cama_set'
-    mongo_client = get_db()
-    try:
-        response = CamaConvert.do_request(request_data, mongo_client)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
-@app.route("/cama_run", methods=["POST"])
-def came_run():
+@app.route("/cama_run/pre", methods=["POST"])
+def came_run_pre():
     try:
         mongo_client = get_db()
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
-        mandatory_keys = ["model", "folder_name", "metadata"]
+        mandatory_keys = ["model", "folder_name", "start_year", "end_year"]
         given_keys = request_data.keys()
         for this_key in mandatory_keys:
             if this_key not in given_keys:
                 abort(400, "Missing required input key: " + this_key)
 
-        request_data["request"] = "cama_run"
+        request_data["request"] = "cama_run_pre"
+        response = cama.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route("/cama_run/post", methods=["POST"])
+def came_run_post():
+    try:
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["folder_name", "start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value",
+                          "wetland_loc_multiple"]
+        numeric_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value"]
+        wetland_loc_multiple_list = request_data["wetland_loc_multiple"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request[this_key])
+
+        for wetland_loc in wetland_loc_multiple_list:
+            for loc in wetland_loc:
+                if not cama.is_number(loc):
+                    abort(400, "Expected number, received: wetland_loc_multiple=" + request_data["wetland_loc_multiple"])
+
+        request_data["request"] = "cama_run_post"
         response = cama.do_request(request_data)
         return response
     except Exception as e:
@@ -261,36 +279,6 @@ def get_flow():
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
         request_data["request"] = "get_flow"
-        response = cama.do_request(request_data)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
-@app.route("/update_groundwater", methods=["POST"])
-def update_groundwater():
-    try:
-        mongo_client = get_db()
-        cama = CamaConvert(mongo_client)
-        request_data = request.get_json()
-        mandatory_keys = ["day1", "day2", "month1", "month2", "year1",  "year2", "flow_value", "wetland_loc_multiple"]
-        numeric_keys = ["day1", "day2", "month1", "month2", "year1",  "year2", "flow_value"]
-        wetland_loc_multiple_list = request_data["wetland_loc_multiple"]
-        given_keys = request_data.keys()
-        for this_key in mandatory_keys:
-            if this_key not in given_keys:
-                abort(400, "Missing required input key: " + this_key)
-
-        for this_key in numeric_keys:
-            if not cama.is_number(request_data[this_key]):
-                abort(400, "Expected number, received: " + this_key + "=" + request[this_key])
-
-        for wetland_loc in wetland_loc_multiple_list:
-            for loc in wetland_loc:
-                if not cama.is_number(loc):
-                    abort(400, "Expected number, received: wetland_loc_multiple=" + request_data["wetland_loc_multiple"])
-
-        request_data["request"] = "update_groundwater"
         response = cama.do_request(request_data)
         return response
     except Exception as e:

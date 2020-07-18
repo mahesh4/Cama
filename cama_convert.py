@@ -207,7 +207,6 @@ class CamaConvert:
                 f.close()
 
             print("flow updated for ", file_name)
-        self.config_cama(year1, year2)
 
     def delta_max_q_y(self, p_cell=0):
         if not str(self.YEAR).isdigit():
@@ -420,10 +419,9 @@ class CamaConvert:
         line3 = self.delta_max_q_y(self.grid_cell_of_river_mouth()) * 3600 * 24  # 3) the river mouth
         return line1, line2, line3
 
-    def config_cama(self, s_year=0, e_year=0):
+    def config_cama(self, model, s_year=0, e_year=0):
         # this function is for configuring the post-restoration ONLY
         # this is because all the pre-restoration results have been pre-computed
-
         if s_year == 0:
             s_year = self.YEAR
         if e_year == 0:
@@ -431,7 +429,8 @@ class CamaConvert:
         if e_year < 1915 or e_year > 2011:
             return "Invalid CAMA year: " + str(s_year) + ", " + str(e_year)
         try:
-            file_path = os.path.join(self.BASE_PATH, "gosh", "hamid_post_template.sh")
+            file_name = "hamid_<MODEL>_template.sh".replace("<MODEL>", model)
+            file_path = os.path.join(self.BASE_PATH, "gosh", file_name)
             with open(file_path, "r") as file:
                 cama_config = file.read()
                 file.close()
@@ -490,7 +489,7 @@ class CamaConvert:
                 min_val = this_flow
         return min_year
 
-    def run_cama(self, p_model, folder_name, metadata):
+    def run_cama_pre(self, s_year, e_year, folder_name):
         # expects cama to be pre-configured
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
@@ -502,18 +501,50 @@ class CamaConvert:
             # Check if there exist no such document with the folder_name in the DB and in dropbox
             folder = folder_collection.find_one({"folder_name": folder_name})
             if folder is None and not self.DROPBOX.folder_exists(folder_name):
-                new_file = dict({"model": p_model, "status": "running", "folder_name": folder_name, "metadata": metadata})
+                metadata = {"start_year": s_year, "end_year": e_year}
+                new_file = dict({"model": "preflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
                 # Creating the folder in dropbox, and in database
                 folder_collection.insert_one(new_file)
                 self.DROPBOX.create_folder(folder_name)
 
+                # Config the Cama to run from s_year to e_year
+                self.config_cama("pre", s_year, e_year)
+
                 # Starting the execution of the model
-                if p_model == "preflow":
-                    subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_pre.sh", shell=True)
-                elif p_model == "postflow_wetland" or p_model == "postflow_groundwater":
-                    subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
-                else:
-                    raise Exception("Invalid model")
+                subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_pre.sh", shell=True)
+            else:
+                raise Exception("folder name already exists")
+        except Exception as e:
+            raise e
+        return "Execution queued"
+
+    def run_cama_post(self, start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value, folder_name):
+        # expects cama to be pre-configured
+        try:
+            folder_collection = self.MONGO_CLIENT["output"]["folder"]
+            # Check if there is no existing model running
+            folder_list = list(folder_collection.find({"status": "running"}))
+            if len(folder_list) > 0:
+                return "there is model in execution, pls retry after sometime"
+
+            # Check if there exist no such document with the folder_name in the DB and in dropbox
+            folder = folder_collection.find_one({"folder_name": folder_name})
+            if folder is None and not self.DROPBOX.folder_exists(folder_name):
+                metadata = {"start_day": start_day, "start_month": start_month,"start_year": start_year, "end_day": end_day, "end_month": end_month,
+                            "end_year": end_year, "flow_value": flow_value, "wetland_loc_multiple": wetland_loc_multiple}
+                new_file = dict({"model": "preflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
+                # Creating the folder in dropbox, and in database
+                folder_collection.insert_one(new_file)
+                self.DROPBOX.create_folder(folder_name)
+
+                # Config the Cama to run from s_year to e_year
+                self.config_cama("post", start_year, end_year)
+
+                # Update the groundwater in the input
+                self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value)
+
+                # Starting the execution of the model
+                subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
             else:
                 raise Exception("folder name already exists")
         except Exception as e:
@@ -521,7 +552,7 @@ class CamaConvert:
         return "Execution queued"
 
     def clean_up(self):
-        """Deleting all content of the  folder"""
+        """Deleting all content of the temp folder"""
         directory = os.path.join(os.getcwd(), "temp")
         if os.path.exists(directory) and os.path.isdir(directory):
             shutil.rmtree(directory)
@@ -536,29 +567,6 @@ class CamaConvert:
                 return folder["status"]
         except Exception as e:
             raise e
-
-    def get_flow(p_year, model, folder_name):
-        # TODO: Work in progress
-        p_year = str(p_year)
-        if model == "pre":
-            base_path = "/var/lib/model/CaMa_Pre/out/hamid/"
-            out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
-
-        elif model == "post":
-            base_path = "/var/lib/model/CaMa_Post/out/hamid/"
-            out_path = base_path + "outflw<YEAR>.bin".replace("<YEAR>", p_year)
-
-        else:
-            return "Invalid model-type selected"
-
-        if os.path.isfile(out_path):
-            with open(out_path, "r") as file:
-                outflow = numpy.fromfile(file, dtype=numpy.float32)
-                file.close()
-            return outflow
-
-        else:
-            return "output_flow doesn't exist for the year " + p_year
 
     def remove_output_folder(self, folder_name):
         folder_collection = self.MONGO_CLIENT["output"]["folder"]
@@ -600,7 +608,6 @@ class CamaConvert:
             preflow.append(flow)
 
         preflow = numpy.asarray(preflow)
-        # numpy.savetxt("preflow_outflow.csv", preflow, delimiter=",")
 
         # plotting the postflow
         postflow = []
@@ -622,8 +629,8 @@ class CamaConvert:
             postflow.append(flow)
 
         postflow = numpy.asarray(postflow)
-        # numpy.savetxt("postflow_gw_outflow.csv", postflow, delimiter=",")
 
+        # Generating dates
         file_path = os.path.join(self.BASE_PATH, "inp", "hamid_dates_1915_2011")
         dates = numpy.loadtxt(file_path, dtype=numpy.int32)
         dates_in_range = dates[dates[:, 0] == self.YEAR]
@@ -665,22 +672,14 @@ class CamaConvert:
                 result = dict()
                 message = self.cama_status(p_request_json["folder_name"])
                 result["message"] = message
-            elif p_request_json["request"] == "cama_set":
+            elif p_request_json["request"] == "cama_run_pre":
                 result = dict()
-                message = self.config_cama(p_request_json["year"])
+                message = self.run_cama_pre(p_request_json["start_year"], p_request_json["end_year"], p_request_json["folder_name"])
                 result["message"] = message
-            elif p_request_json["request"] == "cama_run":
+            elif p_request_json["request"] == "cama_run_post":
                 result = dict()
-                message = self.run_cama(p_request_json["model"], p_request_json["folder_name"], p_request_json["metadata"])
+                message = self.run_cama_post(p_request_json["start_year"], p_request_json["end_year"], p_request_json["folder_name"] )
                 result["message"] = message
-            elif p_request_json["request"] == "get_flow":
-                result = self.get_flow(p_request_json["year"], p_request_json["model_type"])
-            elif p_request_json["request"] == "update_groundwater":
-                result = dict()
-                self.update_groundwater(p_request_json["day1"], p_request_json["month1"], p_request_json["year1"], p_request_json["day2"],
-                                        p_request_json["month2"], p_request_json["year2"], p_request_json["wetland_loc_multiple"],
-                                        p_request_json["flow_value"])
-                result["message"] = "Flow updated successfully"
             elif p_request_json["request"] == "remove_output_folder":
                 result = dict()
                 message = self.remove_output_folder(p_request_json["folder_name"])
