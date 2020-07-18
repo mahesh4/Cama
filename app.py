@@ -1,7 +1,8 @@
 from flask import Flask, request, abort
 from arcgis2geojson import arcgis2geojson
-import cama_convert
-from db_connect import DBConnect
+import json
+from cama_convert import CamaConvert
+from db_connect import DbConnect
 from flask import g
 
 app = Flask(__name__)
@@ -12,7 +13,7 @@ def get_db():
     current application context.
     """
     if not hasattr(g, 'mongodb'):
-        db = DBConnect()
+        db = DbConnect()
         db.connect_db()
         g.mongodb = db
     return g.mongodb.get_connection()
@@ -36,28 +37,38 @@ def index():
 
 @app.route('/to_geojson', methods=['POST'])
 def to_geojson():
-    # work in progress
-    """Need to talk to Hans regarding the input and functionality"""
+    # TODO: work in progress
     response = dict()
     return response
 
 
 @app.route('/to_arcgis', methods=['POST'])
 def to_arcgis():
-    # work in progress
+    # TODO: work in progress
     """Need to talk to Hans regarding the input and functionality"""
     response = dict()
     return response
 
 
-@app.route('/wetland_flow', methods=['POST'])
+@app.route("/wetland_flow", methods=["POST"])
 def wetland_flow():
-    request_data = request.get_json()
-    request_data['request'] = 'plot_hydrograph_from_wetlands'
-    mongo_client = get_db()
-
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["pre_path", "post_path", "year", "lat", "lon"]
+        numeric_keys = ["lat", "lon", "year"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "plot_hydrograph_from_wetlands"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
@@ -65,135 +76,265 @@ def wetland_flow():
 
 @app.route("/reservoir_flow", methods=["POST"])
 def reservoir_flow():
-    # completed
-    request_data = request.get_json()
-    request_data["request"] = "plot_hydrograph_nearest_reservoir"
-    mongo_client = get_db()
-
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["pre_path", "post_path", "year", "lat", "lon"]
+        numeric_keys = ["lat", "lon", "year"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "plot_hydrograph_nearest_reservoir"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/comparative_flow', methods=['POST'])
+@app.route("/comparative_flow", methods=["POST"])
 def comparative_flow():
-    request_data = request.get_json()
-    request_data['request'] = 'plot_hydrograph_deltas'
-    mongo_client = get_db()
-
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["pre_path", "post_path", "year", "lat", "lon", "return_period"]
+        numeric_keys = ["lat", "lon", "year", "return_period"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "plot_hydrograph_deltas"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/vegetation_lookup', methods=['POST'])
+@app.route("/vegetation_lookup", methods=["POST"])
 def vegetation_lookup():
-    request_data = request.get_json()
-    request_data["request"] = "veg_lookup"
-    mongo_client = get_db()
-
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["veg_type"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        request_data["request"] = "veg_lookup"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/update_manning', methods=['POST'])
+@app.route("/update_manning", methods=["POST"])
 def update_manning():
+    # TODO: Work in progress
     request_data = request.get_json()
-    request_data['request'] = 'update_manning'
-    mongo_client = get_db()
-
+    request_data["request"] = "update_manning"
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        mongo_client = get_db()
+        response = CamaConvert.do_request(request_data, mongo_client)
         return response
     except Exception as e:
         abort(500, e)
 
 
 @app.route("/cama_status", methods=["POST"])
-def cama_status_pre():
-    request_data = request.get_json()
-    request_data["request"] = "cama_status"
-    mongo_client = get_db()
-
+def cama_status():
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["folder_name"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        request_data["request"] = "cama_status"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/cama_set', methods=['POST'])
-def cama_set():
-    request_data = request.get_json()
-    request_data['request'] = 'cama_set'
-    mongo_client = get_db()
-    try:
-        response = cama_convert.do_request(request_data, mongo_client)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
-@app.route('/cama_run', methods=['POST'])
+@app.route("/cama_run/pre", methods=["POST"])
 def came_run_pre():
-    request_data = dict()
-    request_data['request'] = 'cama_run'
-    mongo_client = get_db()
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["folder_name", "start_year", "end_year"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        request_data["request"] = "cama_run_pre"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/coord_to_grid', methods=['POST'])
-def coor_to_grid():
-    request_data = request.get_json()
-    request_data['request'] = 'coord_to_grid'
-    mongo_client = get_db()
+@app.route("/cama_run/post", methods=["POST"])
+def came_run_post():
     try:
-        response = cama_convert.do_request(request_data, mongo_client)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["folder_name", "start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value",
+                          "wetland_loc_multiple"]
+        numeric_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value"]
+        wetland_loc_multiple_list = request_data["wetland_loc_multiple"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request[this_key])
+
+        for wetland_loc in wetland_loc_multiple_list:
+            for loc in wetland_loc:
+                if not cama.is_number(loc):
+                    abort(400, "Expected number, received: wetland_loc_multiple=" + request_data["wetland_loc_multiple"])
+
+        request_data["request"] = "cama_run_post"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/peak_flow', methods=['POST'])
+@app.route("/coord_to_grid", methods=["POST"])
+def coord_to_grid():
+    try:
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["lat", "lon"]
+        numeric_keys = ["lat", "lon"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "coord_to_grid"
+        response = CamaConvert.do_request(request_data, mongo_client)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route("/peak_flow", methods=["POST"])
 def peak_flow():
-    # completed, not working, the server disk space is less to hold data for 100 yrs(Need to check with 10 yrs data)
-    request_data = request.get_json()
-    request_data['request'] = 'peak_flow'
     try:
-        response = cama_convert.do_request(request_data)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        mandatory_keys = ["folder_name", "lat", "lon", "return_period"]
+        numeric_keys = ["lat", "lon", "return_period"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "peak_flow"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/get_flow', methods=['POST'])
+@app.route("/get_flow", methods=["POST"])
 def get_flow():
-    request_data = request.get_json()
-    request_data['request'] = 'get_flow'
+    # TODO: Work in progress
     try:
-        response = cama_convert.do_request(request_data)
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        request_data = request.get_json()
+        request_data["request"] = "get_flow"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
 
 
-@app.route('/update_wetland', methods=['POST'])
-def update_flow():
-    request_data = request.get_json()
-    request_data['request'] = 'update_wetland'
+@app.route("/remove_output_folder", methods=["POST"])
+def remove_output_folder():
     try:
-        response = cama_convert.do_request(request_data)
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["folder_name"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        request_data["request"] = "remove_output_folder"
+        response = cama.do_request(request_data)
+        return response
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route("/output_folders", methods=["GET"])
+def get_output_folders():
+    try:
+        mongo_client = get_db()
+        database = mongo_client["output"]
+        folder_collection = database["folder"]
+        response = list(folder_collection.find({}, {"_id": 0}))
+        return json.dumps(response)
+    except Exception as e:
+        abort(500, e)
+
+
+@app.route("/compare_flow", methods=["POST"])
+def compare_flow():
+    try:
+        request_data = request.get_json()
+        mongo_client = get_db()
+        cama = CamaConvert(mongo_client)
+        mandatory_keys = ["lat", "lon", "pre_path", "post_path", "year"]
+        numeric_keys = ["lat", "lon", "year"]
+        given_keys = request_data.keys()
+        for this_key in mandatory_keys:
+            if this_key not in given_keys:
+                abort(400, "Missing required input key: " + this_key)
+
+        for this_key in numeric_keys:
+            if not cama.is_number(request_data[this_key]):
+                abort(400, "Expected number, received: " + this_key + "=" + request_data[this_key])
+
+        request_data["request"] = "plot_compare_flow"
+        response = cama.do_request(request_data)
         return response
     except Exception as e:
         abort(500, e)
