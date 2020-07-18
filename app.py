@@ -179,7 +179,7 @@ def came_run_pre():
         mongo_client = get_db()
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
-        mandatory_keys = ["model", "folder_name", "start_year", "end_year"]
+        mandatory_keys = ["folder_name", "start_year", "end_year"]
         given_keys = request_data.keys()
         for this_key in mandatory_keys:
             if this_key not in given_keys:

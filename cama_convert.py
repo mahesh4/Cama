@@ -436,7 +436,7 @@ class CamaConvert:
                 file.close()
             cama_config = cama_config.replace("<SYEAR>", str(s_year))
             cama_config = cama_config.replace("<EYEAR>", str(e_year))
-            file_path = os.path.join(self.BASE_PATH, "gosh", "hamid_post.sh")
+            file_path = os.path.join(self.BASE_PATH, "gosh", "hamid_<MODEL>.sh".replace("<MODEL>", model))
             with open(file_path, "w") as file:
                 file.write(cama_config)
                 file.close()
@@ -530,9 +530,9 @@ class CamaConvert:
             # Check if there exist no such document with the folder_name in the DB and in dropbox
             folder = folder_collection.find_one({"folder_name": folder_name})
             if folder is None and not self.DROPBOX.folder_exists(folder_name):
-                metadata = {"start_day": start_day, "start_month": start_month,"start_year": start_year, "end_day": end_day, "end_month": end_month,
+                metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
                             "end_year": end_year, "flow_value": flow_value, "wetland_loc_multiple": wetland_loc_multiple}
-                new_file = dict({"model": "preflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
+                new_file = dict({"model": "postflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
                 # Creating the folder in dropbox, and in database
                 folder_collection.insert_one(new_file)
                 self.DROPBOX.create_folder(folder_name)
@@ -678,7 +678,7 @@ class CamaConvert:
                 result["message"] = message
             elif p_request_json["request"] == "cama_run_post":
                 result = dict()
-                message = self.run_cama_post(p_request_json["start_year"], p_request_json["end_year"], p_request_json["folder_name"] )
+                message = self.run_cama_post(p_request_json["start_year"], p_request_json["end_year"], p_request_json["folder_name"])
                 result["message"] = message
             elif p_request_json["request"] == "remove_output_folder":
                 result = dict()
