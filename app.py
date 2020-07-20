@@ -1,6 +1,7 @@
 from flask import Flask, request, abort
-from arcgis2geojson import arcgis2geojson
+import geojson
 import json
+from shapely.geometry import MultiPolygon, Polygon
 from cama_convert import CamaConvert
 from db_connect import DbConnect
 from flask import g
@@ -37,17 +38,27 @@ def index():
 
 @app.route('/to_geojson', methods=['POST'])
 def to_geojson():
-    # TODO: work in progress
-    response = dict()
-    return response
+    try:
+        request_data = request.get_json()
+        input = request_data.operationalLayers[3].featureCollection.layers[0].featureSet.features
+        coord_set = [x["geometry"] for x in input]
+        polygon_list = [Polygon(cc) for cc in coord_set]
+        multipolygon = MultiPolygon(polygon_list)
+        response = geojson.Feature(geometry=geojson.MultiPolygon(coord_set))
+        response["bbox"] = multipolygon.bounds
+        return json.dumps(response)
+    except Exception as e:
+        abort(400, e)
 
 
 @app.route('/to_arcgis', methods=['POST'])
 def to_arcgis():
-    # TODO: work in progress
-    """Need to talk to Hans regarding the input and functionality"""
-    response = dict()
-    return response
+    try:
+        request_data = request.get_json()
+        response = geojson.Feature(geometry=geojson.MultiPolygon(request_data))
+        return json.dumps(response)
+    except Exception as e:
+        abort(400, e)
 
 
 @app.route("/wetland_flow", methods=["POST"])
