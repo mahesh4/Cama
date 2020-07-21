@@ -34,6 +34,6 @@ Copy the hamid_pre_template.sh and hamid_post_template.sh files from the templat
 Setup config.json in project directory
 
 ## Deploy command ##
-uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi:app --logto <path of log file> --master --processes 4 --threads 2 &
+uwsgi --socket 0.0.0.0:5000 --protocol=http -w wsgi:app --logto #pathOfLogFile --master --processes 4 --threads 2 &
 
 
