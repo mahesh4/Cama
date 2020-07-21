@@ -10,12 +10,19 @@ Dropbox Account
 
 ## Installation ##
 pip install shapely
+
 pip install Flask
+
 pip install -U flask-cors
+
 pip install geojson
+
 pip install numpy
+
 pip install dropbox
+
 python -m pip install pymongo
+
 pip install sshtunnel
 
 ## Setup ##
