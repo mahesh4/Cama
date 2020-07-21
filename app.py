@@ -5,8 +5,10 @@ from shapely.geometry import MultiPolygon, Polygon
 from cama_convert import CamaConvert
 from db_connect import DbConnect
 from flask import g
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 
 def get_db():
@@ -352,4 +354,4 @@ def compare_flow():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')  # run app in debug mode on port 80
+    app.run(host='0.0.0.0', threaded=True)  # run app in debug mode on port 80

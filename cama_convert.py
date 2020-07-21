@@ -419,15 +419,13 @@ class CamaConvert:
         line3 = self.delta_max_q_y(self.grid_cell_of_river_mouth()) * 3600 * 24  # 3) the river mouth
         return line1, line2, line3
 
-    def config_cama(self, model, s_year=0, e_year=0):
+    def config_cama(self, model, s_year, e_year):
         # this function is for configuring the post-restoration ONLY
         # this is because all the pre-restoration results have been pre-computed
-        if s_year == 0:
-            s_year = self.YEAR
-        if e_year == 0:
-            e_year = self.YEAR
-        if e_year < 1915 or e_year > 2011:
-            return "Invalid CAMA year: " + str(s_year) + ", " + str(e_year)
+        if e_year > 2011:
+            e_year = 2011
+        if s_year < 1916:
+            s_year = 1916
         try:
             file_name = "hamid_<MODEL>_template.sh".replace("<MODEL>", model)
             file_path = os.path.join(self.BASE_PATH, "gosh", file_name)
@@ -464,7 +462,7 @@ class CamaConvert:
 
         # for each year in the range
         year_peaks = [0] * 97
-        for i in range(1916, 2011):
+        for i in range(1916, 2012):
             # Downloading the file from dropbox
             self.DROPBOX.download_file(folder_name, "outflw" + str(i) + ".bin")
             output_file = os.path.join(os.getcwd(), "temp", folder_name, "outflw" + str(i) + ".bin")
@@ -478,7 +476,7 @@ class CamaConvert:
         xt_gumbel = flow_mean + (kt_gumbel * flow_sdev)
 
         # find the year with the maximal difference / minimum flow
-        curr_year = 1914
+        curr_year = 1915
         min_year = 0
         min_val = float("inf")
         for val in year_peaks:
@@ -519,7 +517,6 @@ class CamaConvert:
         return "Execution queued"
 
     def run_cama_post(self, start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value, folder_name):
-        # expects cama to be pre-configured
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
             # Check if there is no existing model running
@@ -532,13 +529,13 @@ class CamaConvert:
             if folder is None and not self.DROPBOX.folder_exists(folder_name):
                 metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
                             "end_year": end_year, "flow_value": flow_value, "wetland_loc_multiple": wetland_loc_multiple}
-                new_file = dict({"model": "postflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
+                new_folder = dict({"model": "postflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
                 # Creating the folder in dropbox, and in database
-                folder_collection.insert_one(new_file)
+                folder_collection.insert_one(new_folder)
                 self.DROPBOX.create_folder(folder_name)
 
                 # Config the Cama to run from s_year to e_year
-                self.config_cama("post", start_year, end_year)
+                self.config_cama("post", start_year - 1, end_year)
 
                 # Update the groundwater in the input
                 self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value)
