@@ -592,11 +592,6 @@ class CamaConvert:
                 result = self.veg_to_manning(p_request_json["veg_type"])
             elif p_request_json["request"] == "coord_to_grid":
                 result = self.coord_to_grid_cell(p_request_json["lat"], p_request_json["lon"])
-            elif p_request_json["request"] == "update_manning":
-                result = dict()
-                self.update_manning(p_request_json["lat"], p_request_json["lon"], p_request_json["riv_pre"], p_request_json["riv_post"],
-                                    p_request_json["fld_pre"], p_request_json["fld_post"], p_request_json["size_wetland"])
-                result["succeeded"] = True
             elif p_request_json["request"] == "cama_status":
                 result = dict()
                 message = self.cama_status(p_request_json["folder_name"])
