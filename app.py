@@ -154,19 +154,6 @@ def vegetation_lookup():
         abort(500, e)
 
 
-@app.route("/update_manning", methods=["POST"])
-def update_manning():
-    # TODO: Work in progress
-    request_data = request.get_json()
-    request_data["request"] = "update_manning"
-    try:
-        mongo_client = get_db()
-        response = CamaConvert.do_request(request_data, mongo_client)
-        return response
-    except Exception as e:
-        abort(500, e)
-
-
 @app.route("/cama_status", methods=["POST"])
 def cama_status():
     try:
