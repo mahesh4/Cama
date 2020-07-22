@@ -3,5 +3,5 @@
   "SSH_KEYFILE": "~/.ssh/Cama.pem",
   "SSH_USERNAME": "cc",
   "CAMA_BASE_PATH": "/var/lib/model/cama",
-  "DROPBOX_ACCESS_TOKEN": "oASbMvYQQbAAAAAAAAAHd6lJRiJoQkdM5oXYbjGyHkBne81aO6BFNlLK0_deHxPU"
+  "DROPBOX_ACCESS_TOKEN": ""
 }
