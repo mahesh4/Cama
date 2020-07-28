@@ -37,6 +37,8 @@ Place the hamid_dates_1915_2011 file inside the "inp" folder in CAMA directory
 
 Create a copy of the files in the "hamid" directory in "inp" folder and place it in the under the folder name "hamid_copy" in the same "inp" directory 
 
+Deploy a MONGO Server and create a database named "output" and a collection named "folder"
+
 Setup config.json in project directory
 
 ## Deploy command ##
