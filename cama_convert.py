@@ -373,6 +373,8 @@ class CamaConvert:
             with open(file_path, "w") as file:
                 file.write(cama_config)
                 file.close()
+            # Giving the execute permission to the file
+            os.chmod(file_path, 0o777)
         except IOError as e:
             return "IOError:" + str(e)
         return "Success"
