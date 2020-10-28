@@ -198,9 +198,9 @@ def came_run_post():
         mongo_client = get_db()
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
-        mandatory_keys = ["folder_name", "start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value",
+        mandatory_keys = ["folder_name", "start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_values",
                           "wetland_loc_multiple"]
-        numeric_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_value"]
+        numeric_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year"]
         wetland_loc_multiple_list = request_data["wetland_loc_multiple"]
         given_keys = request_data.keys()
         for this_key in mandatory_keys:

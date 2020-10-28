@@ -111,7 +111,7 @@ class CamaConvert:
         else:
             return None  # not a recognized type of vegetation
 
-    def update_groundwater(self, day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value):
+    def update_groundwater(self, day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value_list):
         file_path = os.path.join(self.BASE_PATH, "map", "hamid", "lonlat_vic_op_cmf_ip")
         lon_lat = numpy.loadtxt(file_path)
         file_path = os.path.join(self.BASE_PATH, "inp", "hamid_dates_1915_2011")
@@ -126,7 +126,7 @@ class CamaConvert:
         dates_start_idx = numpy.where((dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1))
         dates_end_idx = numpy.where((dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2))
         dates_in_range = dates[dates_start_idx[0][0]: dates_end_idx[0][0] + 1]
-        flow = flow_value / len(dates_in_range)
+
         for cur_date in dates_in_range:
             file_name = "Roff___" + "".join(map(lambda x: str(x).zfill(2), cur_date)) + ".bin"
             file_path = os.path.join(self.BASE_PATH, "inp", "hamid", file_name)
@@ -134,7 +134,8 @@ class CamaConvert:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
-            for min_lonlat_index in min_lonlat_index_list:
+            for index, min_lonlat_index in enumerate(min_lonlat_index_list):
+                flow = flow_value_list[index] / len(dates_in_range)
                 flood_input[min_lonlat_index] += flow * 0.0256
 
             with open(file_path, "w") as f:
@@ -453,7 +454,7 @@ class CamaConvert:
             raise e
         return "Execution queued"
 
-    def run_cama_post(self, start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value, folder_name):
+    def run_cama_post(self, start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value_list, folder_name):
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
             # Check if there is no existing model running
@@ -465,7 +466,7 @@ class CamaConvert:
             folder = folder_collection.find_one({"folder_name": folder_name})
             if folder is None and not self.DROPBOX.folder_exists(folder_name):
                 metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
-                            "end_year": end_year, "flow_value": flow_value, "wetland_loc_multiple": wetland_loc_multiple}
+                            "end_year": end_year, "flow_values": flow_value_list, "wetland_loc_multiple": wetland_loc_multiple}
                 new_folder = dict({"model": "postflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
                 # Creating the folder in dropbox, and in database
                 folder_collection.insert_one(new_folder)
@@ -475,7 +476,7 @@ class CamaConvert:
                 self.config_cama("post", start_year - 1, end_year)
 
                 # Update the groundwater in the input
-                self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value)
+                self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value_list)
 
                 # Starting the execution of the model
                 subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
@@ -609,7 +610,7 @@ class CamaConvert:
                 result = dict()
                 message = self.run_cama_post(p_request_json["start_day"], p_request_json["start_month"], p_request_json["start_year"],
                                              p_request_json["end_day"], p_request_json["end_month"], p_request_json["end_year"],
-                                             p_request_json["wetland_loc_multiple"], p_request_json["flow_value"], p_request_json["folder_name"])
+                                             p_request_json["wetland_loc_multiple"], p_request_json["flow_values"], p_request_json["folder_name"])
                 result["message"] = message
             elif p_request_json["request"] == "remove_output_folder":
                 result = dict()
