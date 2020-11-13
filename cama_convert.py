@@ -8,6 +8,7 @@ import numpy
 import random
 import string
 # Custom import
+from db_connect import DbConnect
 from dropbox_connect import DropBox
 
 
@@ -123,6 +124,13 @@ class CamaConvert:
             nearest_lon_lat_index = distance.index(min(distance))
             min_lonlat_index_list.append(nearest_lon_lat_index)
 
+        unique_min_lonlat_index_list = (set(min_lonlat_index_list))
+        aggregate_flow_value_list = list()
+        for min_lonlat in unique_min_lonlat_index_list:
+            indices_list = [i for i, x in enumerate(min_lonlat_index_list) if x == min_lonlat]
+            aggregate_flow = sum([flow_value_list[index] for index in indices_list])
+            aggregate_flow_value_list.append(aggregate_flow)
+
         dates_start_idx = numpy.where((dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1))
         dates_end_idx = numpy.where((dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2))
         dates_in_range = dates[dates_start_idx[0][0]: dates_end_idx[0][0] + 1]
@@ -134,8 +142,9 @@ class CamaConvert:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
-            for index, min_lonlat_index in enumerate(min_lonlat_index_list):
-                flow = flow_value_list[index] / len(dates_in_range)
+            for index, min_lonlat_index in enumerate(unique_min_lonlat_index_list):
+                flow = aggregate_flow_value_list[index] / len(dates_in_range)
+                print(flood_input[min_lonlat_index])
                 flood_input[min_lonlat_index] += flow * 0.0256
 
             with open(file_path, "w") as f:
