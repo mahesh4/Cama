@@ -7,8 +7,9 @@ import subprocess
 import numpy
 import random
 import string
+from bson.objectid import ObjectId
+
 # Custom import
-from db_connect import DbConnect
 from dropbox_connect import DropBox
 
 
@@ -18,7 +19,7 @@ class CamaConvert:
         with open(file_path) as f:
             config = json.load(f)
             f.close()
-        self.BASE_PATH = config["CAMA_BASE_PATH"]
+        self.BASE_PATH = config["CAMA_BASE_PATH"] # Cama Model Base-path
         self.DROPBOX = DropBox()
         self.MONGO_CLIENT = mongo_client
         self.YEAR = None  # the year to evaluate
@@ -113,23 +114,31 @@ class CamaConvert:
             return None  # not a recognized type of vegetation
 
     def update_groundwater(self, day1, month1, year1, day2, month2, year2, wetland_loc_multiple, flow_value_list):
+
+        # Check if inp folder has been duplicated
+        if not os.path.exists(os.path.join(self.BASE_PATH, "inp", "hamid_copy")):
+            command = "sudo cp -avr ${CAMADIR}/inp/hamid ${CAMADIR}/inp/hamid_copy".replace("{CAMADIR}", self.BASE_PATH)
+            process = subprocess.Popen(command, shell=True)
+            process.wait()
+
         file_path = os.path.join(self.BASE_PATH, "map", "hamid", "lonlat_vic_op_cmf_ip")
         lon_lat = numpy.loadtxt(file_path)
         file_path = os.path.join(self.BASE_PATH, "inp", "hamid_dates_1915_2011")
         dates = numpy.loadtxt(file_path, dtype=numpy.int32)
-        min_lonlat_index_list = []
-        # Finding nearest lon_lat to the wetland location
+        min_lonlat_index_list = list()
+
         for wetland_loc in wetland_loc_multiple:
+            # Finding nearest lon_lat to the wetland location. Note: the wetland locations are in the format (lat, lon)
             distance = [self.pos2dis(wetland_loc[0], wetland_loc[1], location[1], location[0]) for location in lon_lat]
             nearest_lon_lat_index = distance.index(min(distance))
             min_lonlat_index_list.append(nearest_lon_lat_index)
 
-        unique_min_lonlat_index_list = (set(min_lonlat_index_list))
-        aggregate_flow_value_list = list()
-        for min_lonlat in unique_min_lonlat_index_list:
-            indices_list = [i for i, x in enumerate(min_lonlat_index_list) if x == min_lonlat]
-            aggregate_flow = sum([flow_value_list[index] for index in indices_list])
-            aggregate_flow_value_list.append(aggregate_flow)
+        # unique_min_lonlat_index_list = (set(min_lonlat_index_list))
+        # aggregate_flow_value_list = list()
+        # for min_lonlat in unique_min_lonlat_index_list:
+        #     indices_list = [i for i, x in enumerate(min_lonlat_index_list) if x == min_lonlat]
+        #     aggregate_flow = sum([flow_value_list[index] for index in indices_list])
+        #     aggregate_flow_value_list.append(aggregate_flow)
 
         dates_start_idx = numpy.where((dates[:, 0] == year1) & (dates[:, 1] == month1) & (dates[:, 2] == day1))
         dates_end_idx = numpy.where((dates[:, 0] == year2) & (dates[:, 1] == month2) & (dates[:, 2] == day2))
@@ -142,9 +151,8 @@ class CamaConvert:
                 flood_input = numpy.fromfile(f, dtype=numpy.float32)
                 f.close()
 
-            for index, min_lonlat_index in enumerate(unique_min_lonlat_index_list):
-                flow = aggregate_flow_value_list[index] / len(dates_in_range)
-                print(flood_input[min_lonlat_index])
+            for index, min_lonlat_index in enumerate(min_lonlat_index_list):
+                flow = flow_value_list[index] / len(dates_in_range)
                 flood_input[min_lonlat_index] += flow * 0.0256
 
             with open(file_path, "w") as f:
@@ -390,7 +398,9 @@ class CamaConvert:
         return "Success"
 
     def peak_flow(self, folder_name, p_lat=0.0, p_lon=0.0, floodpeak=10):
-        """Returns a year which has maximal difference / minimum flow(working)"""
+        """
+        Returns a year which has maximal difference / minimum flow(working)
+        """
         if p_lat == 0:
             p_lat = self.LAT
         if p_lon == 0:
@@ -434,69 +444,94 @@ class CamaConvert:
                 min_val = this_flow
         return min_year
 
-    def run_cama_pre(self, s_year, e_year, folder_name):
-        # expects cama to be pre-configured
+    def handle_cama_exception(self, folder_name):
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
-            # Check if there is no existing model running
-            folder_list = list(folder_collection.find({"status": "running"}))
-            if len(folder_list) > 0:
-                return "there is model in execution, pls retry after sometime"
+            folder_collection.delete_one({"folder_name": folder_name})
+            self.DROPBOX.delete_folder(folder_name)
 
-            # Check if there exist no such document with the folder_name in the DB and in dropbox
-            folder = folder_collection.find_one({"folder_name": folder_name})
-            if folder is None and not self.DROPBOX.folder_exists(folder_name):
-                metadata = {"start_year": s_year, "end_year": e_year}
-                new_file = dict({"model": "preflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
-                # Creating the folder in dropbox, and in database
-                folder_collection.insert_one(new_file)
-                self.DROPBOX.create_folder(folder_name)
-
-                # Config the Cama to run from s_year to e_year
-                self.config_cama("pre", s_year, e_year)
-
-                # Starting the execution of the model
-                subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_pre.sh", shell=True)
-            else:
-                raise Exception("folder name already exists")
         except Exception as e:
             raise e
+
+    def run_cama_pre(self, s_year, e_year, folder_name):
+        try:
+            folder_collection = self.MONGO_CLIENT["output"]["folder"]
+            # Check if the model is in execution
+            folder_list = folder_collection.find({"status": "running"})
+            if folder_list is not None:
+                return "Model is in execution, please retry after sometime"
+            # Check if the folder_name is unique
+            folder_list = folder_collection.find({"folder_name": folder_name})
+            if folder_list is not None:
+                raise Exception("folder_name is not unique. There exist a record with same folder_name")
+
+            metadata = {"start_year": s_year, "end_year": e_year}
+            new_record = dict({"model": "preflow", "status": "running", "metadata": metadata})
+            # Inserting the record in MongoDB
+            record_id = folder_collection.insert_one(new_record).inserted_id
+            # Use record_id as the folder_name if its None
+            if folder_name is None:
+                folder_name = record_id
+            # Updating the folder_name of the new_record
+            folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
+            # Creating a folder for the record in Dropbox
+            self.DROPBOX.create_folder(folder_name)
+            # Config the Cama to run from s_year to e_year
+            self.config_cama("pre", s_year, e_year)
+            # Starting the execution of the model
+            subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_pre.sh", shell=True)
+        except Exception as e:
+            self.handle_cama_exception(folder_name, )
+            raise e
         return "Execution queued"
+
+    def reset_inp_directory(self):
+        command = "sudo rm -r ${CAMADIR}/inp/hamid; sudo cp -avr ${CAMADIR}/inp/hamid_copy ${CAMADIR}/inp/hamid; sudo chmod -R 705 ${" \
+                  "CAMADIR}/inp/hamid".replace("{CAMADIR}", self.BASE_PATH)
+        process = subprocess.Popen(command, shell=True)
+        process.wait()
+        return
 
     def run_cama_post(self, start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value_list, folder_name):
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
-            # Check if there is no existing model running
-            folder_list = list(folder_collection.find({"status": "running"}))
-            if len(folder_list) > 0:
-                return "there is model in execution, pls retry after sometime"
-
-            # Check if there exist no such document with the folder_name in the DB and in dropbox
-            folder = folder_collection.find_one({"folder_name": folder_name})
-            if folder is None and not self.DROPBOX.folder_exists(folder_name):
-                metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
+            # Check if the model is in execution
+            folder_list = folder_collection.find({"status": "running"})
+            if folder_list is not None:
+                return "Model is in execution, please retry after sometime"
+            # Check if the folder_name is unique
+            folder_list = folder_collection.find({"folder_name": folder_name})
+            if folder_list is not None:
+                raise Exception("folder_name is not unique. There exist a record with same folder_name")
+            metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
                             "end_year": end_year, "flow_values": flow_value_list, "wetland_loc_multiple": wetland_loc_multiple}
-                new_folder = dict({"model": "postflow", "status": "running", "folder_name": folder_name, "metadata": metadata})
-                # Creating the folder in dropbox, and in database
-                folder_collection.insert_one(new_folder)
-                self.DROPBOX.create_folder(folder_name)
-
-                # Config the Cama to run from s_year to e_year
-                self.config_cama("post", start_year - 1, end_year)
-
-                # Update the groundwater in the input
-                self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value_list)
-
-                # Starting the execution of the model
-                subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
-            else:
-                raise Exception("folder name already exists")
+            new_record = dict({"model": "postflow", "status": "running", "metadata": metadata})
+            # Inserting the record in MongoDB
+            record_id = folder_collection.insert_one(new_record).inserted_id
+            # Use record_id as the folder_name if its None
+            if folder_name is None:
+                folder_name = record_id
+            # Updating the folder_name of the new_record
+            folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
+            # Creating the folder for the record in Dropbox
+            self.DROPBOX.create_folder(folder_name)
+            # Config the Cama to run from s_year to e_year
+            self.config_cama("post", start_year - 1, end_year)
+            # Update the groundwater in the input
+            self.update_groundwater(start_day, start_month, start_year, end_day, end_month, end_year, wetland_loc_multiple, flow_value_list)
+            # Starting the execution of the model
+            subprocess.Popen("sudo " + self.BASE_PATH + "/gosh/hamid_post.sh", shell=True)
         except Exception as e:
+            self.handle_cama_exception(folder_name)
+            self.reset_inp_directory()
             raise e
+
         return "Execution queued"
 
     def clean_up(self):
-        """Deleting all content of the temp folder"""
+        """
+        Deleting all content of the temp folder
+        """
         directory = os.path.join(os.getcwd(), self.TMP_FOLDER)
         if os.path.exists(directory) and os.path.isdir(directory):
             shutil.rmtree(directory)

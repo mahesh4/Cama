@@ -179,13 +179,15 @@ def came_run_pre():
         mongo_client = get_db()
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
-        mandatory_keys = ["folder_name", "start_year", "end_year"]
+        mandatory_keys = ["start_year", "end_year"]
         given_keys = request_data.keys()
         for this_key in mandatory_keys:
             if this_key not in given_keys:
                 abort(400, "Missing required input key: " + this_key)
 
         request_data["request"] = "cama_run_pre"
+        if "folder_name" not in given_keys:
+            request_data["folder_name"] = None
         response = cama.do_request(request_data)
         return response
     except Exception as e:
@@ -198,7 +200,7 @@ def came_run_post():
         mongo_client = get_db()
         cama = CamaConvert(mongo_client)
         request_data = request.get_json()
-        mandatory_keys = ["folder_name", "start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_values",
+        mandatory_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year", "flow_values",
                           "wetland_loc_multiple"]
         numeric_keys = ["start_day", "end_day", "start_month", "end_month", "start_year",  "end_year"]
         wetland_loc_multiple_list = request_data["wetland_loc_multiple"]
@@ -217,6 +219,8 @@ def came_run_post():
                     abort(400, "Expected number, received: wetland_loc_multiple=" + request_data["wetland_loc_multiple"])
 
         request_data["request"] = "cama_run_post"
+        if "folder_name" not in given_keys:
+            request_data["folder_name"] = None
         response = cama.do_request(request_data)
         return response
     except Exception as e:
