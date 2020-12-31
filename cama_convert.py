@@ -472,7 +472,7 @@ class CamaConvert:
             record_id = folder_collection.insert_one(new_record).inserted_id
             # Use record_id as the folder_name if its None
             if folder_name is None:
-                folder_name = record_id
+                folder_name = str(record_id)
             # Updating the folder_name of the new_record
             folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
             # Creating a folder for the record in Dropbox
@@ -511,7 +511,7 @@ class CamaConvert:
             record_id = folder_collection.insert_one(new_record).inserted_id
             # Use record_id as the folder_name if its None
             if folder_name is None:
-                folder_name = record_id
+                folder_name = str(record_id)
             # Updating the folder_name of the new_record
             folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
             # Creating the folder for the record in Dropbox
@@ -675,3 +675,12 @@ class CamaConvert:
             # Deleting the temp folder
             self.clean_up()
             raise e
+
+
+if __name__ == '__main__':
+    db_connect = DbConnect()
+    db_connect.connect_db()
+    mongo = db_connect.get_connection()
+    cama = CamaConvert(mongo)
+    payload = {"request": "cama_run_pre", "start_year": 1911, "end_year": 2011, "folder_name": None}
+    cama.do_request(payload)
