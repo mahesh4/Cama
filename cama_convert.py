@@ -7,7 +7,6 @@ import subprocess
 import numpy
 import random
 import string
-from bson.objectid import ObjectId
 
 # Custom import
 from db_connect import DbConnect
@@ -474,7 +473,7 @@ class CamaConvert:
             if folder_name is None:
                 folder_name = str(record_id)
             # Updating the folder_name of the new_record
-            folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
+            folder_collection.update({"_id": record_id}, {"$set": {"folder_name": folder_name}})
             # Creating a folder for the record in Dropbox
             self.DROPBOX.create_folder(folder_name)
             # Config the Cama to run from s_year to e_year
@@ -513,7 +512,7 @@ class CamaConvert:
             if folder_name is None:
                 folder_name = str(record_id)
             # Updating the folder_name of the new_record
-            folder_collection.update({"_id": ObjectId(record_id)}, {"$set": {"folder_name": folder_name}})
+            folder_collection.update({"_id": record_id}, {"$set": {"folder_name": folder_name}})
             # Creating the folder for the record in Dropbox
             self.DROPBOX.create_folder(folder_name)
             # Config the Cama to run from s_year to e_year
