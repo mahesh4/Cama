@@ -10,6 +10,7 @@ import string
 from bson.objectid import ObjectId
 
 # Custom import
+from db_connect import DbConnect
 from dropbox_connect import DropBox
 
 
@@ -457,12 +458,12 @@ class CamaConvert:
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
             # Check if the model is in execution
-            folder_list = folder_collection.find({"status": "running"})
-            if folder_list is not None:
+            running_record = folder_collection.find_one({"status": "running"})
+            if running_record is not None:
                 return "Model is in execution, please retry after sometime"
             # Check if the folder_name is unique
-            folder_list = folder_collection.find({"folder_name": folder_name})
-            if folder_list is not None:
+            record = folder_collection.find_one({"folder_name": folder_name})
+            if record is not None:
                 raise Exception("folder_name is not unique. There exist a record with same folder_name")
 
             metadata = {"start_year": s_year, "end_year": e_year}
