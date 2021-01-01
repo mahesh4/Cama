@@ -19,7 +19,7 @@ class CamaConvert:
         with open(file_path) as f:
             config = json.load(f)
             f.close()
-        self.BASE_PATH = config["CAMA_BASE_PATH"] # Cama Model Base-path
+        self.BASE_PATH = config["CAMA_BASE_PATH"]  # Cama Model Base-path
         self.DROPBOX = DropBox()
         self.MONGO_CLIENT = mongo_client
         self.YEAR = None  # the year to evaluate
@@ -496,15 +496,15 @@ class CamaConvert:
         try:
             folder_collection = self.MONGO_CLIENT["output"]["folder"]
             # Check if the model is in execution
-            folder_list = folder_collection.find({"status": "running"})
-            if folder_list is not None:
+            running_record = folder_collection.find_one({"status": "running"})
+            if running_record is not None:
                 return "Model is in execution, please retry after sometime"
             # Check if the folder_name is unique
-            folder_list = folder_collection.find({"folder_name": folder_name})
-            if folder_list is not None:
+            record = folder_collection.find_one({"folder_name": folder_name})
+            if record is not None:
                 raise Exception("folder_name is not unique. There exist a record with same folder_name")
             metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
-                            "end_year": end_year, "flow_values": flow_value_list, "wetland_loc_multiple": wetland_loc_multiple}
+                        "end_year": end_year, "flow_values": flow_value_list, "wetland_loc_multiple": wetland_loc_multiple}
             new_record = dict({"model": "postflow", "status": "running", "metadata": metadata})
             # Inserting the record in MongoDB
             record_id = folder_collection.insert_one(new_record).inserted_id
@@ -674,12 +674,3 @@ class CamaConvert:
             # Deleting the temp folder
             self.clean_up()
             raise e
-
-
-if __name__ == '__main__':
-    db_connect = DbConnect()
-    db_connect.connect_db()
-    mongo = db_connect.get_connection()
-    cama = CamaConvert(mongo)
-    payload = {"request": "cama_run_pre", "start_year": 1911, "end_year": 2011, "folder_name": None}
-    cama.do_request(payload)
