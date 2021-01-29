@@ -117,7 +117,7 @@ class CamaConvert:
 
         # Check if inp folder has been duplicated
         if not os.path.exists(os.path.join(self.BASE_PATH, "inp", "hamid_copy")):
-            command = "sudo cp -avr ${CAMADIR}/inp/hamid ${CAMADIR}/inp/hamid_copy".replace("{CAMADIR}", self.BASE_PATH)
+            command = "sudo cp -avr ${CAMADIR}/inp/hamid ${CAMADIR}/inp/hamid_copy".replace("${CAMADIR}", self.BASE_PATH)
             process = subprocess.Popen(command, shell=True)
             process.wait()
 
@@ -394,6 +394,7 @@ class CamaConvert:
             # Giving the execute permission to the file
             os.chmod(file_path, 0o777)
         except IOError as e:
+            print("IOError:" + str(e))
             return "IOError:" + str(e)
         return "Success"
 
@@ -472,6 +473,7 @@ class CamaConvert:
             # Use record_id as the folder_name if its None
             if folder_name is None:
                 folder_name = str(record_id)
+
             # Updating the folder_name of the new_record
             folder_collection.update({"_id": record_id}, {"$set": {"folder_name": folder_name}})
             # Creating a folder for the record in Dropbox
@@ -487,7 +489,7 @@ class CamaConvert:
 
     def reset_inp_directory(self):
         command = "sudo rm -r ${CAMADIR}/inp/hamid; sudo cp -avr ${CAMADIR}/inp/hamid_copy ${CAMADIR}/inp/hamid; sudo chmod -R 705 ${" \
-                  "CAMADIR}/inp/hamid".replace("{CAMADIR}", self.BASE_PATH)
+                  "CAMADIR}/inp/hamid".replace("${CAMADIR}", self.BASE_PATH)
         process = subprocess.Popen(command, shell=True)
         process.wait()
         return
@@ -503,14 +505,17 @@ class CamaConvert:
             record = folder_collection.find_one({"folder_name": folder_name})
             if record is not None:
                 raise Exception("folder_name is not unique. There exist a record with same folder_name")
+
             metadata = {"start_day": start_day, "start_month": start_month, "start_year": start_year, "end_day": end_day, "end_month": end_month,
                         "end_year": end_year, "flow_values": flow_value_list, "wetland_loc_multiple": wetland_loc_multiple}
             new_record = dict({"model": "postflow", "status": "running", "metadata": metadata})
             # Inserting the record in MongoDB
             record_id = folder_collection.insert_one(new_record).inserted_id
+
             # Use record_id as the folder_name if its None
             if folder_name is None:
                 folder_name = str(record_id)
+
             # Updating the folder_name of the new_record
             folder_collection.update({"_id": record_id}, {"$set": {"folder_name": folder_name}})
             # Creating the folder for the record in Dropbox
